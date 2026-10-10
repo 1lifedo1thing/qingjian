@@ -21,6 +21,7 @@ use crate::page_id::PageId;
 use crate::phrases::PhraseEditor;
 use crate::previews::Previews;
 use crate::shortcut::Shortcut;
+use crate::stats::Stats;
 use crate::update::UpdateCheck;
 use crate::view;
 
@@ -76,6 +77,9 @@ pub struct Settings {
     /// 开着的短语编辑卡片。
     pub phrase: Option<PhraseEditor>,
 
+    /// 统计页的数，进统计页时读。
+    pub stats: Option<Stats>,
+
     waker: Option<Waker>,
 
     /// 「关于」页的数据来源展开着。
@@ -117,6 +121,7 @@ impl Settings {
             library: Library::scan(),
             import: ImportJob::default(),
             phrase: None,
+            stats: None,
             waker: None,
         }
         .with_fields())
@@ -377,6 +382,9 @@ impl App for Settings {
                 self.close_phrase();
                 if page == PageId::Dictionaries {
                     self.library = Library::scan();
+                }
+                if page == PageId::Stats {
+                    self.stats = Some(Stats::load(&self.config.general));
                 }
             }
             Message::Record(shortcut) => self.recording = Some(shortcut),

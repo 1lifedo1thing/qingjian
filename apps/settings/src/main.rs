@@ -19,6 +19,7 @@ mod previews;
 mod settings;
 mod shortcut;
 mod snapshot;
+mod stats;
 mod update;
 mod view;
 

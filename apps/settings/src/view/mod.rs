@@ -15,6 +15,7 @@ mod menus;
 mod phrases;
 pub(super) mod shortcuts;
 mod sidebar;
+mod stats;
 mod themes;
 
 use render_engine::taffy::{Dimension, FlexDirection, LengthPercentage, NodeId, Rect, Size, Style};
@@ -123,9 +124,9 @@ fn content(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
         PageId::Phrases => phrases::phrases(ui, page)?,
         PageId::Dictionaries => dictionaries::dictionaries(ui, page)?,
         PageId::Cloud => cloud::cloud(ui, page)?,
+        PageId::Stats => stats::stats(ui, page)?,
         PageId::Advanced => advanced::advanced(ui, page)?,
         PageId::About => about::about(ui, page)?,
-        _ => Vec::new(),
     };
     let column = ui.scene().node(
         Style {
