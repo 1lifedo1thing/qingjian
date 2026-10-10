@@ -15,6 +15,7 @@ mod stage;
 mod svg_image;
 mod text;
 mod ui;
+mod widgets;
 
 pub use animation::{Easing, Keyframe, Keyframes};
 pub use canvas::Canvas;
@@ -32,6 +33,10 @@ pub use text::{Decoration, TextPainter, TextSize, TextStyle};
 pub use ui::{
     ElementState, Elements, Event, Interact, Interaction, Key, KeyCode, KeyPress, Modifiers,
     Response, Ui,
+};
+pub use widgets::{
+    Button, Checkbox, NavItem, SearchField, Segmented, Select, SettingRow, Stepper, Switch,
+    WidgetColors, WidgetTheme, group, section_title,
 };
 
 /// 使用方建树用的布局类型、自己画图标用的路径与混合模式，与这里是同一个 taffy、tiny-skia。
