@@ -8,9 +8,6 @@ pub struct Palette {
     pub window: Color,
 
     pub sidebar: Color,
-
-    /// 页标题。
-    pub ink: Color,
 }
 
 pub const LIGHT: Palette = Palette {
@@ -24,6 +21,7 @@ pub const LIGHT: Palette = Palette {
         chip: Color::rgb(0xFF, 0xFF, 0xFF),
         chip_text: Color::rgb(0x33, 0x6F, 0x33),
         surface: Color::rgb(0xFF, 0xFF, 0xFF),
+        popup: Color::rgb(0xFF, 0xFF, 0xFF),
         line: Color::rgb(0xE4, 0xEC, 0xE2),
         hover: Color::rgba(0x33, 0x6F, 0x33, 14),
         pressed: Color::rgba(0x33, 0x6F, 0x33, 30),
@@ -36,7 +34,6 @@ pub const LIGHT: Palette = Palette {
     },
     window: Color::rgb(0xF7, 0xFA, 0xF7),
     sidebar: Color::rgb(0xED, 0xF3, 0xEB),
-    ink: Color::rgb(0x11, 0x22, 0x38),
 };
 
 pub const DARK: Palette = Palette {
@@ -50,6 +47,7 @@ pub const DARK: Palette = Palette {
         chip: Color::rgb(0x3A, 0x47, 0x39),
         chip_text: Color::rgb(0xB4, 0xD8, 0x86),
         surface: Color::rgb(0x1F, 0x27, 0x20),
+        popup: Color::rgb(0x25, 0x2E, 0x26),
         line: Color::rgba(255, 255, 255, 18),
         hover: Color::rgba(255, 255, 255, 12),
         pressed: Color::rgba(255, 255, 255, 24),
@@ -62,5 +60,4 @@ pub const DARK: Palette = Palette {
     },
     window: Color::rgb(0x15, 0x1A, 0x16),
     sidebar: Color::rgb(0x1B, 0x22, 0x1C),
-    ink: Color::rgb(0xE4, 0xEA, 0xE3),
 };

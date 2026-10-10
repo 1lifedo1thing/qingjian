@@ -7,9 +7,8 @@ use render_engine::taffy::{
     Position, Rect, Size, Style,
 };
 use render_engine::{
-    Button, Checkbox, FamilyId, FontSpec, FontWeight, Interact, KeyCode, NavItem, RenderError,
-    SearchField, Segmented, Select, SettingRow, Stepper, Switch, TextStyle, Ui, Visual,
-    WidgetTheme, group, section_title,
+    Button, Checkbox, Interact, KeyCode, NavItem, RenderError, ScrollArea, SearchField, Segmented,
+    Select, SettingRow, Stepper, Switch, TITLEBAR, Ui, Visual, WidgetTheme, group, section_title,
 };
 
 use crate::demo::{
@@ -18,23 +17,18 @@ use crate::demo::{
 use crate::icons::{Glyph, PAGE_GLYPHS};
 use crate::palette::{DARK, LIGHT, Palette};
 
-/// 窗口顶上让给系统标题栏按钮的高度（点）：macOS 内容铺到标题栏下面，侧栏要躲开红绿灯。
-const TITLEBAR: f32 = if cfg!(target_os = "macos") { 28.0 } else { 0.0 };
-
 /// 建整窗的场景树，根节点就是窗口大小（像素）。
 pub fn view(
     ui: &mut Ui<Message>,
     demo: &Demo,
     scale: f32,
     (width, height): (u32, u32),
-    serif: FamilyId,
 ) -> Result<NodeId, RenderError> {
     let palette = if demo.dark() { &DARK } else { &LIGHT };
     let page = Page {
         theme: WidgetTheme::new(palette.widgets, scale),
         palette,
         demo,
-        serif,
     };
     let sidebar = page.sidebar(ui)?;
     let content = page.content(ui)?;
@@ -65,8 +59,6 @@ struct Page<'a> {
     palette: &'a Palette,
 
     demo: &'a Demo,
-
-    serif: FamilyId,
 }
 
 impl Page<'_> {
@@ -180,14 +172,12 @@ impl Page<'_> {
     }
 
     fn content(&self, ui: &mut Ui<Message>) -> Result<NodeId, RenderError> {
-        let title = PAGES.get(self.demo.page).copied().unwrap_or_default();
-        let mut children = vec![self.title(ui, title)?];
+        let mut children = Vec::new();
         if self.demo.page == 1 {
             children.extend(self.candidates(ui)?);
         }
-        ui.scene().node(
+        let column = ui.scene().node(
             Style {
-                flex_grow: 1.0,
                 flex_direction: FlexDirection::Column,
                 gap: self.gap(10.0),
                 padding: Rect {
@@ -198,24 +188,13 @@ impl Page<'_> {
             },
             Visual::Group,
             &children,
-        )
-    }
-
-    /// 页标题用宋体。
-    fn title(&self, ui: &mut Ui<Message>, text: &str) -> Result<NodeId, RenderError> {
-        let font = FontSpec {
-            weight: FontWeight(700),
-            family: self.serif,
-            ..FontSpec::new(26.0, 34.0)
-        };
-        ui.scene().node(
-            Style::default(),
-            Visual::Text {
-                text: text.to_owned(),
-                style: TextStyle::new(font.scaled(self.theme.scale), 26.0, self.palette.ink, 1.0),
-            },
-            &[],
-        )
+        )?;
+        // 每页各记各的滚动位置
+        ScrollArea::new(Style {
+            flex_grow: 1.0,
+            ..Style::default()
+        })
+        .build(ui, &self.theme, ("content", self.demo.page), column)
     }
 
     /// 「候选窗口」页：外观、排布、文字、动效四组。

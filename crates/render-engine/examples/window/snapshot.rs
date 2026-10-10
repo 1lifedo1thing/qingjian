@@ -7,16 +7,19 @@ use render_engine::taffy::{
     Dimension, FlexDirection, FlexWrap, LengthPercentage, Rect, Size, Style,
 };
 use render_engine::{
-    BoxPaint, Color, Event, Fill, FontSpec, Interaction, Key, KeyCode, KeyPress, Modifiers, Pixmap,
-    Scene, Stage, TextStyle, Visual,
+    BoxPaint, Color, Event, Fill, FontSpec, Key, KeyCode, KeyPress, Modifiers, Pixmap, Scene,
+    Stage, TextStyle, Visual,
 };
 
-use crate::demo::{Demo, Message};
-use crate::frame;
+use std::time::Instant;
+
+use render_engine::{FontLibrary, Runner};
+
+use crate::demo::Demo;
 
 const SCALE: f32 = 2.0;
 
-const SIZE: (u32, u32) = (1560, 1500);
+const SIZE: (u32, u32) = (1560, 1160);
 
 /// 一步：说明，以及截图前要发的事件。
 enum Step {
@@ -25,19 +28,24 @@ enum Step {
     Down,
     Up,
     Press(KeyCode, bool),
+    Scroll(f32),
 }
 
 pub fn run(directory: &Path) -> Result<(), Box<dyn std::error::Error>> {
     std::fs::create_dir_all(directory)?;
-    let mut studio = frame::Studio::new()?;
+    let mut runner = Runner::new(Demo::new(false), FontLibrary::system("zh-CN")?);
     // 截的是每步的终态
-    studio.stage.set_animations(false);
-    let mut interaction = Interaction::new();
-    let mut demo = Demo::new(false);
+    runner.stage().set_animations(false);
     let nav = |index: usize| Key::ROOT.child("nav").child(index);
     let option = |choice: &str, index: usize| Key::ROOT.child(choice).child(index);
     let steps = [
         Step::Shot("默认"),
+        Step::Move(Key::ROOT.child(("content", 1_usize))),
+        Step::Scroll(120.0),
+        Step::Shot("往下滚：标题滚出去，右边浮出滚动条"),
+        Step::Scroll(5000.0),
+        Step::Shot("滚到底：停在最后一组"),
+        Step::Scroll(-5000.0),
         Step::Move(nav(4)),
         Step::Shot("悬停导航「模糊音」"),
         Step::Move(option("Layout", 1)),
@@ -60,6 +68,8 @@ pub fn run(directory: &Path) -> Result<(), Box<dyn std::error::Error>> {
         Step::Shot("Tab：焦点环到译文字号"),
         Step::Press(KeyCode::ArrowUp, false),
         Step::Shot("↑：译文字号 14 pt"),
+        Step::Move(Key::ROOT.child(("content", 1_usize))),
+        Step::Scroll(5000.0),
         Step::Move(Key::ROOT.child("animations")),
         Step::Down,
         Step::Shot("按住开关：旋钮拉宽"),
@@ -69,6 +79,7 @@ pub fn run(directory: &Path) -> Result<(), Box<dyn std::error::Error>> {
         Step::Down,
         Step::Up,
         Step::Shot("选「系统绘制」：字体与字号变灰"),
+        Step::Scroll(-5000.0),
         Step::Move(option("Appearance", 2)),
         Step::Down,
         Step::Up,
@@ -78,12 +89,11 @@ pub fn run(directory: &Path) -> Result<(), Box<dyn std::error::Error>> {
 
     let mut shots: Vec<(&str, Pixmap)> = Vec::new();
     // 先出一帧，交互层才有元素的位置
-    frame::render(&mut studio, &mut interaction, &demo, SCALE, SIZE)?;
+    runner.rebuild(SCALE, SIZE, Instant::now())?;
     for step in steps {
         let event = match step {
             Step::Shot(caption) => {
-                let frame = frame::render(&mut studio, &mut interaction, &demo, SCALE, SIZE)?;
-                let painted = frame.painted;
+                let painted = runner.rebuild(SCALE, SIZE, Instant::now())?;
                 let pixmap = painted
                     .pixmap
                     .clone_rect(
@@ -103,12 +113,13 @@ pub fn run(directory: &Path) -> Result<(), Box<dyn std::error::Error>> {
                 continue;
             }
             Step::Move(key) => {
-                let (x, y, width, height) = interaction.rect(key).ok_or("找不到元素")?;
+                let (x, y, width, height) = runner.interaction().rect(key).ok_or("找不到元素")?;
                 Event::PointerMoved {
                     x: x + width / 2.0,
                     y: y + height / 2.0,
                 }
             }
+            Step::Scroll(dy) => Event::Scroll { dx: 0.0, dy },
             Step::Down => Event::PointerDown,
             Step::Up => Event::PointerUp,
             Step::Press(key, shift) => Event::Key(KeyPress::new(
@@ -119,20 +130,12 @@ pub fn run(directory: &Path) -> Result<(), Box<dyn std::error::Error>> {
                 },
             )),
         };
-        let response = interaction.handle(&event);
-        let rebuild = response.needs_rebuild();
-        for message in response.messages {
-            if matches!(message, Message::Quit) {
-                continue;
-            }
-            demo.update(message);
-        }
-        if rebuild {
-            frame::render(&mut studio, &mut interaction, &demo, SCALE, SIZE)?;
+        if runner.handle(&event) {
+            runner.rebuild(SCALE, SIZE, Instant::now())?;
         }
     }
 
-    let sheet = sheet(&mut studio.stage, shots)?;
+    let sheet = sheet(runner.stage(), shots)?;
     let path = directory.join("sheet.png");
     sheet.save_png(&path)?;
     println!("{}：总览", path.display());
