@@ -1,13 +1,17 @@
 //! 青简设置程序（新）：三平台共用、画在 render-engine 上，读写输入法同一份配置文件，改动即时生效。
 //!
-//! - `qingjian-settings-ui`：开窗口，读写用户配置（`qingjian_platform::dirs::config_path`）。
+//! - `qingjian-settings-ui`：开窗口，读写用户配置（`paths::config_path`）。
 //! - `--config <文件>`：换一份配置文件读写（试用时不碰真配置）。
 //! - `--png <目录>`：不开窗口，拷一份配置到目录里，按脚本点几下，每步存一张截图。
 
+mod action;
+mod cloud;
 mod fonts;
 mod icons;
 mod message;
+mod page_id;
 mod palette;
+mod paths;
 mod previews;
 mod settings;
 mod snapshot;
@@ -26,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
         )
         .init();
-    let mut config = qingjian_platform::dirs::config_path();
+    let mut config = paths::config_path();
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {

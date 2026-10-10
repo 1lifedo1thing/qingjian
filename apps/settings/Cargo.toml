@@ -1,6 +1,6 @@
 [package]
 name = "qingjian-settings"
-description = "三平台共用的设置程序：画在 render-engine 上，读写同一份 config.toml；先做「候选窗口」页，之后替掉 macOS 偏好设置与 Windows 设置"
+description = "三平台共用的设置程序：画在 render-engine 上，读写同一份 config.toml；成形后替掉 macOS 偏好设置与 Windows 设置"
 version = "0.2.1-dev"
 edition.workspace = true
 license.workspace = true
@@ -20,6 +20,10 @@ toml_edit.workspace = true
 tracing.workspace = true
 # 列本机装的字族（字体下拉框）
 cosmic-text.workspace = true
+jiff.workspace = true
+# 云服务页：测试连接；macOS 上密钥可能在配置同目录的 .env 里，读进来才知道「已设置」
+qingjian-predict.workspace = true
+dotenvy.workspace = true
 tracing-subscriber.workspace = true
 
 [lints]

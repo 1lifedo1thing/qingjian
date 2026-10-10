@@ -5,33 +5,19 @@ use render_engine::{Canvas, Color, Icon};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Glyph {
-    General,
+    Keyboard,
     Candidates,
-    Shortcuts,
+    Language,
+    Appearance,
+    Command,
     Phrases,
-    Fuzzy,
     Dictionary,
-    AuxCode,
     Cloud,
     Stats,
     Advanced,
     About,
     Search,
 }
-
-pub const PAGE_GLYPHS: [Glyph; 11] = [
-    Glyph::General,
-    Glyph::Candidates,
-    Glyph::Shortcuts,
-    Glyph::Phrases,
-    Glyph::Fuzzy,
-    Glyph::Dictionary,
-    Glyph::AuxCode,
-    Glyph::Cloud,
-    Glyph::Stats,
-    Glyph::Advanced,
-    Glyph::About,
-];
 
 /// 16 单位网格上的画笔：坐标换到画布像素。
 struct Pen {
@@ -97,6 +83,24 @@ impl Pen {
     }
 
     fn curve(&mut self, start: (f32, f32), segments: &[[(f32, f32); 3]]) {
+        if let Some(path) = self.curve_path(start, segments, false) {
+            self.strokes.push(path);
+        }
+    }
+
+    /// 曲线连回起点围成的面。
+    fn fill_curve(&mut self, start: (f32, f32), segments: &[[(f32, f32); 3]]) {
+        if let Some(path) = self.curve_path(start, segments, true) {
+            self.fills.push(path);
+        }
+    }
+
+    fn curve_path(
+        &self,
+        start: (f32, f32),
+        segments: &[[(f32, f32); 3]],
+        close: bool,
+    ) -> Option<Path> {
         let mut path = PathBuilder::new();
         let (x, y) = self.p(start.0, start.1);
         path.move_to(x, y);
@@ -104,9 +108,10 @@ impl Pen {
             let (a, b, c) = (self.p(a.0, a.1), self.p(b.0, b.1), self.p(c.0, c.1));
             path.cubic_to(a.0, a.1, b.0, b.1, c.0, c.1);
         }
-        if let Some(path) = path.finish() {
-            self.strokes.push(path);
+        if close {
+            path.close();
         }
+        path.finish()
     }
 }
 
@@ -120,13 +125,6 @@ impl Icon for Glyph {
             fills: Vec::new(),
         };
         match self {
-            // 三根滑杆
-            Glyph::General => {
-                for (row, knob) in [(4.0, 10.5), (8.0, 5.0), (12.0, 9.0)] {
-                    pen.line(&[(2.0, row), (14.0, row)]);
-                    pen.circle(knob, row, 1.6, true);
-                }
-            }
             // 候选窗：窗框里一条高亮行
             Glyph::Candidates => {
                 pen.round_rect(1.75, 2.75, 12.5, 10.5, 2.0, false);
@@ -134,7 +132,7 @@ impl Icon for Glyph {
                 pen.line(&[(4.0, 10.75), (11.5, 10.75)]);
             }
             // 键盘
-            Glyph::Shortcuts => {
+            Glyph::Keyboard => {
                 pen.round_rect(1.25, 3.75, 13.5, 8.5, 1.75, false);
                 for column in [4.0, 6.67, 9.33, 12.0] {
                     pen.circle(column, 6.5, 0.7, true);
@@ -160,18 +158,6 @@ impl Icon for Glyph {
                 pen.line(&[(4.75, 5.75), (11.25, 5.75)]);
                 pen.line(&[(4.75, 8.25), (9.0, 8.25)]);
             }
-            // 两道起伏的声波
-            Glyph::Fuzzy => {
-                for row in [5.5, 10.5] {
-                    pen.curve(
-                        (1.5, row),
-                        &[
-                            [(3.5, row - 3.0), (5.5, row - 3.0), (7.5, row)],
-                            [(9.5, row + 3.0), (11.5, row + 3.0), (14.5, row)],
-                        ],
-                    );
-                }
-            }
             // 翻开的书
             Glyph::Dictionary => {
                 pen.line(&[(8.0, 4.0), (8.0, 13.5)]);
@@ -192,12 +178,34 @@ impl Icon for Glyph {
                     (8.0, 13.5),
                 ]);
             }
-            // 井号
-            Glyph::AuxCode => {
-                pen.line(&[(6.0, 2.0), (5.0, 14.0)]);
-                pen.line(&[(11.0, 2.0), (10.0, 14.0)]);
-                pen.line(&[(2.5, 5.75), (13.75, 5.75)]);
-                pen.line(&[(2.25, 10.25), (13.5, 10.25)]);
+            // 左右两支箭头：中英来回切
+            Glyph::Language => {
+                pen.line(&[(2.0, 5.25), (13.5, 5.25)]);
+                pen.line(&[(10.75, 2.5), (13.5, 5.25), (10.75, 8.0)]);
+                pen.line(&[(14.0, 10.75), (2.5, 10.75)]);
+                pen.line(&[(5.25, 8.0), (2.5, 10.75), (5.25, 13.5)]);
+            }
+            // 半边涂满的圆：深浅色
+            Glyph::Appearance => {
+                pen.circle(8.0, 8.0, 6.5, false);
+                let k = 6.5 * 0.552;
+                pen.fill_curve(
+                    (8.0, 1.5),
+                    &[
+                        [(8.0 + k, 1.5), (14.5, 8.0 - k), (14.5, 8.0)],
+                        [(14.5, 8.0 + k), (8.0 + k, 14.5), (8.0, 14.5)],
+                    ],
+                );
+            }
+            // ⌘
+            Glyph::Command => {
+                for (x, y) in [(4.25, 4.25), (11.75, 4.25), (4.25, 11.75), (11.75, 11.75)] {
+                    pen.circle(x, y, 2.0, false);
+                }
+                pen.line(&[(6.25, 4.25), (6.25, 11.75)]);
+                pen.line(&[(9.75, 4.25), (9.75, 11.75)]);
+                pen.line(&[(4.25, 6.25), (11.75, 6.25)]);
+                pen.line(&[(4.25, 9.75), (11.75, 9.75)]);
             }
             // 云
             Glyph::Cloud => {

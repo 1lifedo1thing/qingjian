@@ -11,9 +11,10 @@ use render_engine::{
     Ui, Visual,
 };
 
-use super::{PAGES, Page};
-use crate::icons::{Glyph, PAGE_GLYPHS};
+use super::Page;
+use crate::icons::Glyph;
 use crate::message::Message;
+use crate::page_id::PageId;
 
 /// 侧栏宽度（点）。
 pub const WIDTH: f32 = 216.0;
@@ -26,15 +27,15 @@ pub fn sidebar(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError>
         .build(ui, theme, "search")?;
     let items = ui.scope("nav", |ui| -> Result<Vec<NodeId>, RenderError> {
         let mut items = Vec::new();
-        for (index, name) in PAGES.iter().enumerate() {
-            let selected = index == page.settings.page;
-            let mut item = NavItem::new(name)
-                .icon(Arc::new(PAGE_GLYPHS[index]))
+        for id in PageId::ALL {
+            let selected = id == page.settings.page;
+            let mut item = NavItem::new(id.label())
+                .icon(Arc::new(id.glyph()))
                 .selected(selected);
             if selected {
                 item = item.accessory(joint(ui, page)?);
             }
-            items.push(item.build(ui, theme, index, Message::Page(index))?);
+            items.push(item.build(ui, theme, id, Message::Page(id))?);
         }
         Ok(items)
     })?;

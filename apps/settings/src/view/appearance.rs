@@ -1,17 +1,14 @@
-//! 「候选窗口」页：预览卡，外观（外观、主题），排布（排布、拼音显示位置），文字（渲染引擎、字体、两个字号），动效。
-//! 选项与文案照 docs/user/settings/preferences.md，取值直接是配置文件里的。
+//! 「外观」页：预览卡，外观（外观、主题），排布（排布、拼音显示位置），文字（渲染引擎、字体、两个字号），动效。
 
 use qingjian_platform::{Appearance, CandidateRenderer, LayoutMode, PreeditMode};
 use render_engine::taffy::NodeId;
-use render_engine::{
-    Button, Checkbox, RenderError, Segmented, Select, SettingRow, Stepper, Switch, Ui, group,
-    section_title,
-};
+use render_engine::{Button, Checkbox, RenderError, SettingRow, Stepper, Ui, group, section_title};
 
+use super::controls::{choice, select, toggle};
 use super::{Page, themes};
-use crate::message::{Message, SizeKind};
+use crate::message::{Message, Popup, SizeKind};
 
-pub fn candidates(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderError> {
+pub fn appearance(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderError> {
     let theme = &page.theme;
     let general = &page.settings.config.general;
     let mut out = vec![themes::preview(ui, page)?];
@@ -23,7 +20,7 @@ pub fn candidates(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Rend
         &Appearance::ALL,
         general.appearance(),
         Appearance::label,
-        Message::Appearance,
+        |value| Message::set("general", "appearance", value.key()),
     )?;
     let appearance = SettingRow::new("外观")
         .control(appearance)
@@ -43,13 +40,18 @@ pub fn candidates(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Rend
         &LayoutMode::ALL,
         general.layout,
         LayoutMode::label,
-        Message::Layout,
+        |value| Message::set("general", "layout", value.key()),
     )?;
     let mut layout = SettingRow::new("排布").control(layout);
     if cfg!(target_os = "macos") {
         let grid = Checkbox::new(general.horizontal_grid, "横排时 ↑ / ↓ 展开成多行")
             .disabled(general.layout != LayoutMode::Horizontal)
-            .build(ui, theme, "grid", Message::Grid)?;
+            .build(
+                ui,
+                theme,
+                "grid",
+                Message::set("general", "horizontal_grid", !general.horizontal_grid),
+            )?;
         layout = layout.below(grid);
     }
     let layout = layout.build(ui, theme)?;
@@ -60,9 +62,10 @@ pub fn candidates(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Rend
         &PreeditMode::ALL,
         general.preedit,
         PreeditMode::label,
-        Message::Preedit,
+        |value| Message::set("general", "preedit", value.key()),
     )?;
     let preedit = SettingRow::new("拼音显示位置")
+        .info("终端里行内拼音显示不正常时选「只在窗口」")
         .control(preedit)
         .build(ui, theme)?;
     out.push(section_title(ui, theme, "排布")?);
@@ -75,7 +78,7 @@ pub fn candidates(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Rend
         &CandidateRenderer::ALL,
         general.renderer,
         CandidateRenderer::label,
-        Message::Renderer,
+        |value| Message::set("general", "renderer", value.key()),
     )?;
     let renderer = SettingRow::new("渲染引擎")
         .control(renderer)
@@ -87,12 +90,7 @@ pub fn candidates(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Rend
     } else {
         general.font.as_str()
     };
-    let font = Select::new(font_name).width(180.0).disabled(!own).build(
-        ui,
-        theme,
-        "font",
-        Message::OpenFonts,
-    )?;
+    let font = select(ui, page, Popup::Font, font_name, 180.0, !own)?;
     let font = SettingRow::new("字体").control(font).build(ui, theme)?;
     let candidate = size(ui, page, SizeKind::Candidate, own)?;
     let candidate = SettingRow::new("候选字号")
@@ -111,46 +109,16 @@ pub fn candidates(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Rend
     out.push(section_title(ui, theme, "文字")?);
     out.push(group(ui, theme, &[renderer, font, candidate, annotation])?);
 
-    let animations =
-        Switch::new(general.animations).build(ui, theme, "animations", Message::Animations)?;
-    let mut rows = vec![
-        SettingRow::new("过渡动画")
-            .control(animations)
-            .build(ui, theme)?,
-    ];
-    if cfg!(windows) {
-        let status = Switch::new(page.settings.config.status_bar.enabled).build(
-            ui,
-            theme,
-            "status-bar",
-            Message::StatusBar,
-        )?;
-        rows.push(
-            SettingRow::new("悬浮状态条")
-                .control(status)
-                .build(ui, theme)?,
-        );
-    }
+    let animations = toggle(
+        ui,
+        page,
+        "过渡动画",
+        ("general", "animations"),
+        general.animations,
+    )?;
     out.push(section_title(ui, theme, "动效")?);
-    out.push(group(ui, theme, &rows)?);
+    out.push(group(ui, theme, &[animations])?);
     Ok(out)
-}
-
-/// 一组互斥取值的分段选择：`all` 按设置界面的顺序，`label` 取界面上的名字。
-fn choice<T: Copy + PartialEq + 'static>(
-    ui: &mut Ui<Message>,
-    page: &Page,
-    local: &str,
-    all: &[T],
-    current: T,
-    label: fn(T) -> &'static str,
-    message: fn(T) -> Message,
-) -> Result<NodeId, RenderError> {
-    let labels: Vec<&str> = all.iter().map(|value| label(*value)).collect();
-    let selected = all.iter().position(|value| *value == current).unwrap_or(0);
-    let values = all.to_vec();
-    Segmented::new(&labels, selected)
-        .build(ui, &page.theme, local, move |index| message(values[index]))
 }
 
 fn size(

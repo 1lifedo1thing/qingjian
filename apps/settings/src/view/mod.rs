@@ -1,31 +1,27 @@
 //! 视图：竹青侧栏（logo、搜索、线性图标的导航、竹节标记）+ 右边当前页的设置项，整页可滚。
+//! 哪页放哪些项见 docs/design/settings.md。
 
+mod about;
+mod advanced;
+mod appearance;
 mod candidates;
+mod cloud;
+mod controls;
+mod input;
+mod language;
+mod menus;
 mod sidebar;
 mod themes;
 
 use render_engine::taffy::{Dimension, FlexDirection, LengthPercentage, NodeId, Rect, Size, Style};
 use render_engine::{
-    Interact, KeyCode, Menu, RenderError, ScrollArea, TITLEBAR, Ui, Visual, WidgetTheme,
+    Interact, KeyCode, RenderError, ScrollArea, TITLEBAR, Ui, Visual, WidgetTheme,
 };
 
 use crate::message::Message;
+use crate::page_id::PageId;
 use crate::palette::{DARK, LIGHT, Palette};
 use crate::settings::Settings;
-
-pub const PAGES: [&str; 11] = [
-    "通用",
-    "候选窗口",
-    "快捷键",
-    "自定义短语",
-    "模糊音",
-    "词库",
-    "辅码",
-    "云服务",
-    "统计",
-    "高级",
-    "关于",
-];
 
 /// 右边内容区左右的边距（点）。
 const CONTENT_PADDING: f32 = 36.0;
@@ -75,8 +71,8 @@ pub fn view(
     let sidebar = sidebar::sidebar(ui, &page)?;
     let content = content(ui, &page)?;
     let mut children = vec![sidebar, content];
-    if settings.font_menu
-        && let Some(menu) = font_menu(ui, &page, (width as f32, height as f32))?
+    if let Some(popup) = settings.menu
+        && let Some(menu) = menus::menu(ui, &page, popup, (width as f32, height as f32))?
     {
         children.push(menu);
     }
@@ -93,7 +89,7 @@ pub fn view(
         &children,
     )?;
     let key = ui.key("root");
-    let menu_open = settings.font_menu;
+    let menu_open = settings.menu.is_some();
     ui.interact(
         root,
         key,
@@ -109,46 +105,16 @@ pub fn view(
     Ok(root)
 }
 
-/// 字体下拉菜单：贴在字体下拉框下面，第一项是系统字体。下拉框还没画过（拿不到位置）时不出。
-fn font_menu(
-    ui: &mut Ui<Message>,
-    page: &Page,
-    window: (f32, f32),
-) -> Result<Option<NodeId>, RenderError> {
-    let Some(anchor) = ui.rect(ui.key("font")) else {
-        return Ok(None);
-    };
-    let families = page.settings.fonts.as_deref().unwrap_or_default();
-    let mut items: Vec<&str> = vec!["系统字体"];
-    items.extend(families.iter().map(String::as_str));
-    let current = &page.settings.config.general.font;
-    let selected = if current.is_empty() {
-        Some(0)
-    } else {
-        families
-            .iter()
-            .position(|name| name == current)
-            .map(|index| index + 1)
-    };
-    let picks: Vec<Option<String>> = std::iter::once(None)
-        .chain(families.iter().cloned().map(Some))
-        .collect();
-    Menu::new(&items, selected, anchor, window)
-        .build(
-            ui,
-            &page.theme,
-            "font-menu",
-            |index| Message::PickFont(picks[index].clone()),
-            Message::CloseMenu,
-        )
-        .map(Some)
-}
-
 fn content(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
-    let children = if page.settings.page == 1 {
-        candidates::candidates(ui, page)?
-    } else {
-        Vec::new()
+    let children = match page.settings.page {
+        PageId::Input => input::input(ui, page)?,
+        PageId::Candidates => candidates::candidates(ui, page)?,
+        PageId::Language => language::language(ui, page)?,
+        PageId::Appearance => appearance::appearance(ui, page)?,
+        PageId::Cloud => cloud::cloud(ui, page)?,
+        PageId::Advanced => advanced::advanced(ui, page)?,
+        PageId::About => about::about(ui, page)?,
+        _ => Vec::new(),
     };
     let column = ui.scene().node(
         Style {

@@ -153,7 +153,9 @@ pub fn cards(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
         ui.interact(
             card,
             key,
-            Interact::new().on_click(Message::Theme(id)).focusable(),
+            Interact::new()
+                .on_click(Message::set("general", "theme", id))
+                .focusable(),
         );
         cards.push(card);
     }

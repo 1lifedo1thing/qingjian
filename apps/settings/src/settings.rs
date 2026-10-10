@@ -1,6 +1,7 @@
 //! 设置程序的状态：配置文件（唯一事实源）、主题库、当前页。改动一律原地写回配置文件再重读，输入法热加载它。
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -8,10 +9,13 @@ use qingjian_platform::{Appearance, Config, ConfigError, LayoutMode};
 use qingjian_render::{TextSizes, Theme, ThemeLibrary};
 use render_engine::taffy::NodeId;
 use render_engine::{
-    App, FamilyId, FamilyList, FamilyTable, RenderError, SvgImage, TextPainter, Ui,
+    App, FamilyId, FamilyList, FamilyTable, RenderError, SvgImage, TextEdit, TextPainter, Ui, Waker,
 };
 
-use crate::message::{Message, SizeKind};
+use crate::action::Action;
+use crate::cloud::CloudTest;
+use crate::message::{FieldId, Message, Popup, SizeKind};
+use crate::page_id::PageId;
 use crate::previews::Previews;
 use crate::view;
 
@@ -25,7 +29,7 @@ pub struct Settings {
 
     pub themes: ThemeLibrary,
 
-    pub page: usize,
+    pub page: PageId,
 
     /// 系统是深色：设置窗口自己跟它走，候选窗「跟随系统」时也按它。
     pub system_dark: bool,
@@ -37,21 +41,39 @@ pub struct Settings {
     /// 侧栏品牌字用的宋体字族。
     pub serif: FamilyId,
 
-    /// 字体下拉菜单开着。
-    pub font_menu: bool,
+    /// 开着的下拉菜单。
+    pub menu: Option<Popup>,
 
     /// 本机字族，第一次打开字体菜单时扫。
     pub fonts: Option<Vec<String>>,
+
+    /// 点过一次、等再点一次确认的动作（清空输入日志）；点了别的就作废。
+    pub armed: Option<Action>,
+
+    /// 做完一件事的那句话和它显示在哪一行下面（[`Action::slot`]、`"cloud"`），点了别的就收掉。
+    pub notice: Option<(&'static str, String)>,
+
+    /// 输入框的编辑状态；回车或离开时才存进配置。
+    pub fields: HashMap<FieldId, TextEdit>,
+
+    pub cloud_test: CloudTest,
+
+    waker: Option<Waker>,
+
+    /// 「关于」页的数据来源展开着。
+    pub sources_open: bool,
 }
 
 impl Settings {
     pub fn load(path: PathBuf) -> Result<Self, ConfigError> {
+        // macOS 偏好设置以前把密钥写在配置同目录的 .env 里，读进环境才知道密钥设没设、测试连接也用得上
+        let _ = dotenvy::from_path(path.with_file_name(".env"));
         let config = if path.exists() {
             Config::load(&path)?
         } else {
             Config::default()
         };
-        let themes = ThemeLibrary::load(qingjian_platform::dirs::themes_dir().as_deref());
+        let themes = ThemeLibrary::load(crate::paths::themes_dir().as_deref());
         let logo = SvgImage::parse(include_bytes!("../assets/logo.svg"))
             .map(Arc::new)
             .inspect_err(|error| tracing::warn!(%error, "logo 解析失败"))
@@ -60,14 +82,75 @@ impl Settings {
             path,
             config,
             themes,
-            page: 1,
+            page: PageId::Input,
             system_dark: false,
             previews: RefCell::new(Previews::new()),
             logo,
             serif: FamilyId::default(),
-            font_menu: false,
+            menu: None,
             fonts: None,
-        })
+            armed: None,
+            notice: None,
+            sources_open: false,
+            fields: HashMap::new(),
+            cloud_test: CloudTest::default(),
+            waker: None,
+        }
+        .with_fields())
+    }
+
+    fn with_fields(mut self) -> Self {
+        for id in FieldId::ALL {
+            self.reset_field(id);
+        }
+        self
+    }
+
+    /// 输入框换回配置里的值（密钥框总是空的，不显示已存的密钥）。
+    fn reset_field(&mut self, id: FieldId) {
+        let predict = &self.config.predict;
+        let value = match id {
+            FieldId::BaseUrl => predict.base_url.clone(),
+            FieldId::Model => predict.model.clone(),
+            FieldId::ApiKey => String::new(),
+        };
+        self.fields.insert(id, TextEdit::new(value));
+    }
+
+    /// 存一个输入框：没改、清空了都不存（清空等于不改）。
+    fn commit(&mut self, id: FieldId) {
+        let Some(text) = self
+            .fields
+            .get(&id)
+            .map(|edit| edit.text().trim().to_owned())
+        else {
+            return;
+        };
+        match id {
+            FieldId::BaseUrl | FieldId::Model => {
+                let current = match id {
+                    FieldId::BaseUrl => &self.config.predict.base_url,
+                    _ => &self.config.predict.model,
+                };
+                if !text.is_empty() && text != *current {
+                    self.write("predict", id.key(), text);
+                }
+            }
+            FieldId::ApiKey if text.is_empty() => {}
+            // 密码框看不见内容，粘贴多了（带上了终端提示符、命令）用户发现不了
+            FieldId::ApiKey if text.chars().any(|c| !c.is_ascii_graphic()) => {
+                self.notice = Some((
+                    "cloud",
+                    "密钥没有保存：里面有空格或非英文字符，多半是粘贴时多带了别的内容".to_owned(),
+                ));
+            }
+            FieldId::ApiKey => {
+                qingjian_platform::logs::secrets::register(&text);
+                self.write("predict", id.key(), text);
+                self.notice = Some(("cloud", "密钥已保存".to_owned()));
+            }
+        }
+        self.reset_field(id);
     }
 
     /// 候选窗该用深色：按「外观」设置，跟随系统时看系统。
@@ -107,6 +190,18 @@ impl Settings {
             tracing::error!(%error, section, key, "写配置失败");
             return;
         }
+        self.reload();
+    }
+
+    fn write_list(&mut self, section: &str, key: &str, values: &[String]) {
+        if let Err(error) = Config::set_array(&self.path, section, key, values) {
+            tracing::error!(%error, section, key, "写配置失败");
+            return;
+        }
+        self.reload();
+    }
+
+    fn reload(&mut self) {
         match Config::load(&self.path) {
             Ok(config) => self.config = config,
             Err(error) => tracing::error!(%error, "重读配置失败"),
@@ -127,28 +222,53 @@ impl App for Settings {
     }
 
     fn update(&mut self, message: Message) -> bool {
-        let general = self.config.general.clone();
+        let armed = self.armed.take();
+        if !matches!(message, Message::Run(_) | Message::TestCloud) {
+            self.notice = None;
+        }
         match message {
-            Message::Page(page) => self.page = page,
-            Message::Appearance(appearance) => {
-                self.write("general", "appearance", appearance.key());
+            Message::Page(page) => {
+                // 输入框在别的页上会直接消失、收不到失焦，这里补存
+                for id in FieldId::ALL {
+                    self.commit(id);
+                }
+                self.page = page;
             }
-            Message::Theme(id) => self.write("general", "theme", id),
-            Message::Layout(layout) => self.write("general", "layout", layout.key()),
-            Message::Grid => self.write("general", "horizontal_grid", !general.horizontal_grid),
-            Message::Preedit(mode) => self.write("general", "preedit", mode.key()),
-            Message::Renderer(renderer) => self.write("general", "renderer", renderer.key()),
-            Message::OpenFonts => {
-                if self.fonts.is_none() {
+            Message::Edit(id, edit) => {
+                if let Some(copied) = self
+                    .fields
+                    .get_mut(&id)
+                    .and_then(|field| field.apply(&edit))
+                {
+                    render_engine::set_clipboard(&copied);
+                }
+            }
+            Message::Commit(id) => self.commit(id),
+            Message::Cancel(id) => self.reset_field(id),
+            Message::TestCloud => {
+                if !self.cloud_test.running() {
+                    let text = match self
+                        .cloud_test
+                        .start(&self.config.predict, self.waker.clone())
+                    {
+                        Ok(()) => "正在测试…".to_owned(),
+                        Err(error) => error,
+                    };
+                    self.notice = Some(("cloud", text));
+                }
+            }
+            Message::Set(section, key, value) => {
+                self.menu = None;
+                self.write(section, key, value);
+            }
+            Message::SetList(section, key, values) => self.write_list(section, key, &values),
+            Message::OpenMenu(popup) => {
+                if popup == Popup::Font && self.fonts.is_none() {
                     self.fonts = Some(crate::fonts::families());
                 }
-                self.font_menu = true;
+                self.menu = Some(popup);
             }
-            Message::PickFont(family) => {
-                self.font_menu = false;
-                self.write("general", "font", family.unwrap_or_default());
-            }
-            Message::CloseMenu => self.font_menu = false,
+            Message::CloseMenu => self.menu = None,
             Message::Size(kind, delta) => {
                 let value = (self.size(kind) + delta as f32).clamp(*SIZES.start(), *SIZES.end());
                 let key = match kind {
@@ -161,11 +281,16 @@ impl App for Settings {
                 self.write("general", "candidate_font_size", 0.0);
                 self.write("general", "annotation_font_size", 0.0);
             }
-            Message::Animations => self.write("general", "animations", !general.animations),
-            Message::StatusBar => {
-                let enabled = self.config.status_bar.enabled;
-                self.write("status_bar", "enabled", !enabled);
+            Message::Run(action) => {
+                // 清空要点两下：第一下只是把按钮换成确认
+                if action == Action::ClearInputLog && armed != Some(action) {
+                    self.armed = Some(action);
+                    self.notice = None;
+                } else {
+                    self.notice = action.run(&self.path).map(|text| (action.slot(), text));
+                }
             }
+            Message::ToggleSources => self.sources_open = !self.sources_open,
             Message::Quit => return false,
         }
         true
@@ -179,6 +304,20 @@ impl App for Settings {
             "Noto Serif CJK SC".to_owned(),
         ]));
         text.use_families(&Arc::new(table));
+    }
+
+    fn set_waker(&mut self, waker: Waker) {
+        self.waker = Some(waker);
+    }
+
+    fn wake(&mut self) -> bool {
+        match self.cloud_test.finish() {
+            Some(text) => {
+                self.notice = Some(("cloud", text));
+                true
+            }
+            None => false,
+        }
     }
 
     fn set_system_dark(&mut self, dark: bool) {

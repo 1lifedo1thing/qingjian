@@ -6,6 +6,7 @@ use std::time::Instant;
 use render_engine::tiny_skia::IntRect;
 use render_engine::{App, Event, FontLibrary, Key, Runner};
 
+use crate::page_id::PageId;
 use crate::settings::Settings;
 
 const SCALE: f32 = 2.0;
@@ -53,37 +54,52 @@ pub fn run(config: Option<&Path>, directory: &Path) -> Result<(), Box<dyn std::e
             Ok(())
         };
 
-    shot(&mut runner, "打开时（按配置文件）")?;
-    click(&mut runner, Key::ROOT.child("layout").child(1_usize))?;
-    shot(&mut runner, "排布选「横排」：预览跟着变")?;
-    if let Some(id) = themes.get(1) {
-        click(&mut runner, Key::ROOT.child("themes").child(id))?;
-        shot(&mut runner, "点第二个主题")?;
+    for page in PageId::ALL {
+        click(&mut runner, Key::ROOT.child("nav").child(page))?;
+        shot(&mut runner, page.label())?;
+        if page == PageId::About {
+            click(&mut runner, Key::ROOT.child("sources"))?;
+        }
+        if matches!(page, PageId::About | PageId::Input) {
+            let area = content(&runner);
+            hover(&mut runner, area)?;
+            runner.handle(&Event::Scroll {
+                dx: 0.0,
+                dy: 5000.0,
+            });
+            shot(&mut runner, &format!("{}：滚到底", page.label()))?;
+        }
     }
-    if let Some(id) = themes.last() {
-        click(&mut runner, Key::ROOT.child("themes").child(id))?;
-        shot(
-            &mut runner,
-            "点最后一个主题（樱花带装饰，预览要缩进卡片里）",
-        )?;
-    }
-    click(&mut runner, Key::ROOT.child("appearance").child(2_usize))?;
-    shot(&mut runner, "外观选「深色」：预览与主题卡片换深色")?;
-    click(&mut runner, Key::ROOT.child("font"))?;
-    shot(&mut runner, "点字体下拉框：弹出本机字族")?;
-    hover(&mut runner, Key::ROOT.child("font-menu").child(3_usize))?;
-    shot(&mut runner, "悬停第三个字族")?;
-    runner.handle(&Event::PointerDown);
-    runner.handle(&Event::PointerUp);
-    shot(&mut runner, "选中后菜单收起，下拉框显示新字族")?;
-    hover(&mut runner, Key::ROOT.child(("content", 1_usize)))?;
+
+    click(&mut runner, Key::ROOT.child("nav").child(PageId::Input))?;
+    let area = content(&runner);
+    hover(&mut runner, area)?;
     runner.handle(&Event::Scroll {
         dx: 0.0,
-        dy: 5000.0,
+        dy: -5000.0,
     });
-    shot(&mut runner, "滚到底")?;
+    click(&mut runner, Key::ROOT.child("scheme"))?;
+    shot(&mut runner, "输入：点拼音下拉框")?;
+    click(&mut runner, Key::ROOT.child("menu").child(1_usize))?;
+    shot(&mut runner, "选小鹤双拼：多出「输入框显示按键」")?;
+
+    click(&mut runner, Key::ROOT.child("nav").child(PageId::Advanced))?;
+    click(&mut runner, Key::ROOT.child("clear-input-log"))?;
+    shot(&mut runner, "高级：点一下清空，按钮变成确认")?;
+
+    click(
+        &mut runner,
+        Key::ROOT.child("nav").child(PageId::Appearance),
+    )?;
+    if let Some(id) = themes.last() {
+        click(&mut runner, Key::ROOT.child("themes").child(id))?;
+    }
+    click(&mut runner, Key::ROOT.child("appearance").child(2_usize))?;
+    shot(&mut runner, "外观：最后一个主题、深色")?;
     runner.app_mut().set_system_dark(true);
     shot(&mut runner, "系统深色：设置窗口自己也换深色")?;
+    click(&mut runner, Key::ROOT.child("nav").child(PageId::Language))?;
+    shot(&mut runner, "中英文（深色）")?;
     Ok(())
 }
 
@@ -96,9 +112,24 @@ fn hover(runner: &mut Runner<Settings>, key: Key) -> Result<(), Box<dyn std::err
     Ok(())
 }
 
-/// 元素在滚动区外时先滚到看得见（离视口边留 40 像素）。
+/// 当前页的滚动区。
+fn content(runner: &Runner<Settings>) -> Key {
+    Key::ROOT.child(("content", runner.app().page))
+}
+
+/// 元素在滚动区外时先滚到看得见（离视口边留 40 像素）；侧栏里的不用滚。
 fn reveal(runner: &mut Runner<Settings>, key: Key) -> Result<(), Box<dyn std::error::Error>> {
-    let content = Key::ROOT.child(("content", 1_usize));
+    let content = content(runner);
+    let Some((left, ..)) = runner.interaction().rect(content) else {
+        return Ok(());
+    };
+    if runner
+        .interaction()
+        .rect(key)
+        .is_some_and(|(x, ..)| x < left)
+    {
+        return Ok(());
+    }
     let (_, top, _, height) = runner.interaction().rect(content).ok_or("找不到滚动区")?;
     let (_, y, _, h) = runner.interaction().rect(key).ok_or("找不到元素")?;
     let margin = 40.0;
