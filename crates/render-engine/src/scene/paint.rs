@@ -213,6 +213,10 @@ impl Scene {
             visual, effects, ..
         }) = self.tree.get_node_context(root).filter(|_| own)
         {
+            let recolored = placed
+                .and_then(|placed| placed.color)
+                .map(|color| visual.recolored(color));
+            let visual = recolored.as_ref().unwrap_or(visual);
             let children = self.tree.children(root)?;
             for kind in [EffectKind::DropShadow, EffectKind::InnerShadow] {
                 if kind == EffectKind::InnerShadow {

@@ -1,10 +1,12 @@
 //! 一帧的建树入口：包着场景树，管 key 的作用域，收集可交互元素。
 
 use std::hash::Hash;
+use std::time::Duration;
 
 use taffy::NodeId;
 
 use super::{ElementState, Elements, Interact, Interaction, Key};
+use crate::animation::Easing;
 use crate::scene::Scene;
 
 pub struct Ui<'a, M> {
@@ -53,6 +55,13 @@ impl<'a, M> Ui<'a, M> {
     /// 登记 `node` 可交互；矩形取它布局后的盒子。
     pub fn interact(&mut self, node: NodeId, key: Key, interact: Interact<M>) {
         self.elements.push((key, node, interact));
+    }
+
+    /// `node` 的位置、大小、不透明度、颜色与上一帧同 key 的节点不同时，从旧值平滑过渡过去。
+    /// 交给 `Stage::present` 画才有过渡，`Stage::rasterize` 直接画终点。
+    pub fn transition(&mut self, node: NodeId, key: Key, duration: Duration, easing: Easing) {
+        self.scene
+            .set_transition(node, key.transition_name(), duration, easing);
     }
 
     pub fn finish(self) -> (Scene, Elements<M>) {

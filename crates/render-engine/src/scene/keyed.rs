@@ -104,6 +104,7 @@ impl Scene {
                     width: layout.size.width,
                     height: layout.size.height,
                     opacity: own,
+                    color: context.and_then(|context| context.visual.color()),
                 },
             });
         }

@@ -16,4 +16,9 @@ impl Key {
         local.hash(&mut hasher);
         Self(hasher.finish())
     }
+
+    /// 场景树过渡配对用的名字；带前缀，不与使用方自己起的配对名撞。
+    pub(super) fn transition_name(self) -> String {
+        format!("ui:{:016x}", self.0)
+    }
 }

@@ -31,6 +31,33 @@ impl Color {
         }
     }
 
+    /// 同色、不透明度为 0。
+    pub const fn transparent(self) -> Self {
+        Self { a: 0, ..self }
+    }
+
+    /// 从 `self` 到 `to` 走了 `progress`（回弹曲线会略超出 0–1，结果夹在色域里）。
+    /// 按预乘后的分量插值，淡入淡出时不会先变暗。
+    pub fn lerp(self, to: Self, progress: f32) -> Self {
+        let alpha = |c: Self| f32::from(c.a) / 255.0;
+        let (a0, a1) = (alpha(self), alpha(to));
+        let a = a0 + (a1 - a0) * progress;
+        if a <= 0.0 {
+            return to.transparent();
+        }
+        let channel = |c0: u8, c1: u8| {
+            let p0 = f32::from(c0) * a0;
+            let p1 = f32::from(c1) * a1;
+            ((p0 + (p1 - p0) * progress) / a).round().clamp(0.0, 255.0) as u8
+        };
+        Self {
+            r: channel(self.r, to.r),
+            g: channel(self.g, to.g),
+            b: channel(self.b, to.b),
+            a: (a * 255.0).round().clamp(0.0, 255.0) as u8,
+        }
+    }
+
     pub fn to_skia(self) -> tiny_skia::Color {
         tiny_skia::Color::from_rgba8(self.r, self.g, self.b, self.a)
     }
@@ -69,5 +96,15 @@ mod tests {
         assert_eq!((half.red(), half.alpha()), (0, 128));
         assert_eq!(mul_u8(255, 255), 255);
         assert_eq!(mul_u8(0, 255), 0);
+    }
+
+    #[test]
+    fn lerp_fades_in_without_darkening() {
+        let accent = Color::rgb(0x33, 0x6F, 0x33);
+        let half = accent.transparent().lerp(accent, 0.5);
+        assert_eq!((half.r, half.g, half.b, half.a), (0x33, 0x6F, 0x33, 128));
+        assert_eq!(accent.transparent().lerp(accent, 1.0), accent);
+        let gray = Color::rgb(200, 200, 200).lerp(Color::rgb(0, 0, 0), 0.5);
+        assert_eq!(gray, Color::rgb(100, 100, 100));
     }
 }
