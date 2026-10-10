@@ -2,6 +2,7 @@
 
 mod decoration;
 pub mod font;
+mod measure_key;
 mod size;
 mod style;
 
@@ -20,6 +21,10 @@ pub use size::TextSize;
 pub use style::TextStyle;
 
 use font::{FamilyList, FamilyTable};
+use measure_key::MeasureKey;
+
+/// 量宽缓存的上限，满了整个清掉（设置页一屏的文字在几百条以内）。
+const MEASURED_LIMIT: usize = 4096;
 
 pub struct TextPainter {
     /// 字体库与回退链。
@@ -45,6 +50,9 @@ pub struct TextPainter {
 
     /// 要求加载过的字体文件（加载失败的也记，不反复试）。
     loaded: HashSet<PathBuf>,
+
+    /// 量过的文字：每帧重建整棵树时同样的文字不再整形。字体、字族、光学字号变了就清。
+    measured: HashMap<MeasureKey, TextSize>,
 }
 
 impl TextPainter {
@@ -60,6 +68,7 @@ impl TextPainter {
             families: None,
             resolved: Vec::new(),
             loaded: HashSet::new(),
+            measured: HashMap::new(),
         }
     }
 
@@ -89,6 +98,7 @@ impl TextPainter {
         }
         if added {
             self.families = None;
+            self.measured.clear();
         }
     }
 
@@ -118,16 +128,31 @@ impl TextPainter {
             })
             .collect();
         self.families = Some(Arc::clone(families));
+        self.measured.clear();
     }
 
     /// 光学字号（点）：SF 这类带 `opsz` 轴的字体在小字号用文本视觉尺寸，CoreText 对系统字体自动做，这里要显式给。
     /// 现在是整个画笔一个值（cosmic-text 的字体实例缓存没按它分键），界面里的小字号都在 20 pt 以下，落到同一档。
     pub fn set_optical_size(&mut self, points: Option<f32>) {
         self.font_system.set_optical_size(points);
+        self.measured.clear();
     }
 
     /// 一段文字的宽高（像素）。高度就是行高。
     pub fn measure(&mut self, text: &str, style: &TextStyle) -> TextSize {
+        let key = MeasureKey::new(text, style);
+        if let Some(size) = self.measured.get(&key) {
+            return *size;
+        }
+        let size = self.measure_uncached(text, style);
+        if self.measured.len() >= MEASURED_LIMIT {
+            self.measured.clear();
+        }
+        self.measured.insert(key, size);
+        size
+    }
+
+    fn measure_uncached(&mut self, text: &str, style: &TextStyle) -> TextSize {
         self.shape(text, style);
         let mut width = 0.0_f32;
         let mut baseline = None;
