@@ -7,7 +7,9 @@
 mod demo;
 mod film;
 mod frame;
+mod icons;
 mod page;
+mod palette;
 mod snapshot;
 
 use std::num::NonZeroU32;
@@ -15,7 +17,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
 
-use render_engine::{Event, FontLibrary, Interaction, KeyCode, KeyPress, Modifiers, Pixmap, Stage};
+use render_engine::{Event, Interaction, KeyCode, KeyPress, Modifiers, Pixmap};
 use softbuffer::{Context, Surface};
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
@@ -33,10 +35,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         snapshot::run(&directory)?;
         return film::run(&directory);
     }
-    let library = FontLibrary::system("zh-CN")?;
     let event_loop = EventLoop::new()?;
     let mut app = App {
-        stage: Stage::new(library),
+        studio: frame::Studio::new()?,
         interaction: Interaction::new(),
         demo: Demo::new(false),
         modifiers: Modifiers::default(),
@@ -48,7 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 struct App {
-    stage: Stage,
+    studio: frame::Studio,
 
     interaction: Interaction<Message>,
 
@@ -77,7 +78,7 @@ impl ApplicationHandler for App {
         }
         let attributes = Window::default_attributes()
             .with_title("render-engine")
-            .with_inner_size(LogicalSize::new(780.0, 660.0))
+            .with_inner_size(LogicalSize::new(780.0, 750.0))
             .with_min_inner_size(LogicalSize::new(480.0, 320.0));
         // macOS：保留系统的红绿灯，标题栏透明、内容铺到窗口顶上（同系统设置）；拖动、缩放仍是系统的
         #[cfg(target_os = "macos")]
@@ -100,7 +101,7 @@ impl ApplicationHandler for App {
             Context::new(window.clone()).and_then(|context| Surface::new(&context, window.clone()));
         match surface {
             Ok(surface) => {
-                self.demo.dark = window.theme() == Some(Theme::Dark);
+                self.demo.system_dark = window.theme() == Some(Theme::Dark);
                 self.window = Some(Host { window, surface });
             }
             Err(error) => {
@@ -125,7 +126,7 @@ impl ApplicationHandler for App {
                 return;
             }
             WindowEvent::ThemeChanged(theme) => {
-                self.demo.dark = theme == Theme::Dark;
+                self.demo.system_dark = theme == Theme::Dark;
                 self.stale = true;
                 host.window.request_redraw();
                 return;
@@ -134,7 +135,7 @@ impl ApplicationHandler for App {
                 let stale = std::mem::take(&mut self.stale);
                 match redraw(
                     host,
-                    &mut self.stage,
+                    &mut self.studio,
                     &mut self.interaction,
                     &self.demo,
                     stale,
@@ -215,7 +216,7 @@ fn key_code(key: &Key) -> Option<KeyCode> {
 /// 重画一帧，返回是否还有动画要接着画。`stale` 时重建树，否则只推进在播的过渡。
 fn redraw(
     host: &mut Host,
-    stage: &mut Stage,
+    studio: &mut frame::Studio,
     interaction: &mut Interaction<Message>,
     demo: &Demo,
     stale: bool,
@@ -228,10 +229,16 @@ fn redraw(
     let scale = host.window.scale_factor() as f32;
     let start = Instant::now();
     let (painted, build) = if stale {
-        let frame = frame::render(stage, interaction, demo, scale, (width.get(), height.get()))?;
+        let frame = frame::render(
+            studio,
+            interaction,
+            demo,
+            scale,
+            (width.get(), height.get()),
+        )?;
         (frame.painted, Some(frame.build))
     } else {
-        match stage.tick()? {
+        match studio.stage.tick()? {
             Some(painted) => (painted, None),
             None => return Ok(false),
         }

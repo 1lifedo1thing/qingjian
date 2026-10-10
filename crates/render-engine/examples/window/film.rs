@@ -7,8 +7,8 @@ use std::time::{Duration, Instant};
 use render_engine::taffy::{FlexDirection, LengthPercentage, Rect, Size, Style};
 use render_engine::tiny_skia::IntRect;
 use render_engine::{
-    BoxPaint, Color, Event, Fill, FontLibrary, FontSpec, Interaction, Key, Painted, Pixmap, Scene,
-    Stage, TextStyle, Visual,
+    BoxPaint, Color, Event, Fill, FontSpec, Interaction, Key, Painted, Pixmap, Scene, Stage,
+    TextStyle, Visual,
 };
 
 use crate::demo::{Demo, Message};
@@ -16,7 +16,7 @@ use crate::frame;
 
 const SCALE: f32 = 2.0;
 
-const SIZE: (u32, u32) = (1560, 1320);
+const SIZE: (u32, u32) = (1560, 1500);
 
 /// 每隔多久截一帧。
 const STEP: Duration = Duration::from_millis(30);
@@ -24,11 +24,11 @@ const STEP: Duration = Duration::from_millis(30);
 const FRAMES: u32 = 10;
 
 pub fn run(directory: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    let mut stage = Stage::new(FontLibrary::system("zh-CN")?);
+    let mut studio = frame::Studio::new()?;
     let mut interaction = Interaction::new();
     let mut demo = Demo::new(false);
-    let key = Key::ROOT.child("switch").child(0_usize);
-    frame::render(&mut stage, &mut interaction, &demo, SCALE, SIZE)?;
+    let key = Key::ROOT.child("animations");
+    frame::render(&mut studio, &mut interaction, &demo, SCALE, SIZE)?;
     let (x, y, width, height) = interaction.rect(key).ok_or("找不到开关")?;
     let pad = 16.0;
     let area = (x - pad, y - pad, width + pad * 2.0, height + pad * 2.0);
@@ -38,24 +38,24 @@ pub fn run(directory: &Path) -> Result<(), Box<dyn std::error::Error>> {
         y: y + height / 2.0,
     });
     interaction.handle(&Event::PointerDown);
-    frame::render(&mut stage, &mut interaction, &demo, SCALE, SIZE)?;
+    frame::render(&mut studio, &mut interaction, &demo, SCALE, SIZE)?;
     // 按住到拉宽的过渡播完再松开
     let held = Instant::now() + Duration::from_millis(300);
-    stage.tick_at(held)?;
+    studio.stage.tick_at(held)?;
     let response = interaction.handle(&Event::PointerUp);
     for message in response.messages {
         if !matches!(message, Message::Quit) {
             demo.update(message);
         }
     }
-    let first = frame::render(&mut stage, &mut interaction, &demo, SCALE, SIZE)?.painted;
+    let first = frame::render(&mut studio, &mut interaction, &demo, SCALE, SIZE)?.painted;
     let start = Instant::now();
 
     let mut frames = vec![crop(&first, area)?];
     let mut spent = Duration::ZERO;
     for index in 1..=FRAMES {
         let began = Instant::now();
-        let painted = stage.tick_at(start + STEP * index)?;
+        let painted = studio.stage.tick_at(start + STEP * index)?;
         spent += began.elapsed();
         if let Some(painted) = painted {
             frames.push(crop(&painted, area)?);
@@ -68,7 +68,7 @@ pub fn run(directory: &Path) -> Result<(), Box<dyn std::error::Error>> {
         SIZE.1,
         FRAMES
     );
-    let strip = strip(&mut stage, frames)?;
+    let strip = strip(&mut studio.stage, frames)?;
     let path = directory.join("film.png");
     strip.save_png(&path)?;
     println!("{}：开关动画逐帧", path.display());

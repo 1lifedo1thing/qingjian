@@ -7,8 +7,8 @@ use render_engine::taffy::{
     Dimension, FlexDirection, FlexWrap, LengthPercentage, Rect, Size, Style,
 };
 use render_engine::{
-    BoxPaint, Color, Event, Fill, FontLibrary, FontSpec, Interaction, Key, KeyCode, KeyPress,
-    Modifiers, Pixmap, Scene, Stage, TextStyle, Visual,
+    BoxPaint, Color, Event, Fill, FontSpec, Interaction, Key, KeyCode, KeyPress, Modifiers, Pixmap,
+    Scene, Stage, TextStyle, Visual,
 };
 
 use crate::demo::{Demo, Message};
@@ -16,7 +16,7 @@ use crate::frame;
 
 const SCALE: f32 = 2.0;
 
-const SIZE: (u32, u32) = (1560, 1320);
+const SIZE: (u32, u32) = (1560, 1500);
 
 /// 一步：说明，以及截图前要发的事件。
 enum Step {
@@ -25,56 +25,64 @@ enum Step {
     Down,
     Up,
     Press(KeyCode, bool),
-    Dark,
 }
 
 pub fn run(directory: &Path) -> Result<(), Box<dyn std::error::Error>> {
     std::fs::create_dir_all(directory)?;
-    let mut stage = Stage::new(FontLibrary::system("zh-CN")?);
+    let mut studio = frame::Studio::new()?;
     // 截的是每步的终态
-    stage.set_animations(false);
+    studio.stage.set_animations(false);
     let mut interaction = Interaction::new();
     let mut demo = Demo::new(false);
-    let sidebar = |index: usize| Key::ROOT.child("sidebar").child(index);
-    let switch = |index: usize| Key::ROOT.child("switch").child(index);
+    let nav = |index: usize| Key::ROOT.child("nav").child(index);
+    let option = |choice: &str, index: usize| Key::ROOT.child(choice).child(index);
     let steps = [
         Step::Shot("默认"),
-        Step::Move(sidebar(2)),
-        Step::Shot("悬停侧栏「外观」"),
-        Step::Move(switch(3)),
-        Step::Shot("悬停关着的开关"),
-        Step::Move(switch(0)),
+        Step::Move(nav(4)),
+        Step::Shot("悬停导航「模糊音」"),
+        Step::Move(option("Layout", 1)),
+        Step::Shot("悬停分段「横排」"),
         Step::Down,
-        Step::Shot("按住开着的开关：旋钮拉宽"),
         Step::Up,
-        Step::Shot("松开：关掉了，焦点在它上但不画环"),
+        Step::Shot("点「横排」：选中块滑过去，展开多行可以勾了"),
+        Step::Move(Key::ROOT.child("expand")),
+        Step::Down,
+        Step::Up,
+        Step::Shot("勾上「展开成多行」"),
+        Step::Move(Key::ROOT.child("Candidate").child("increase")),
+        Step::Down,
+        Step::Shot("按住候选字号的 +"),
+        Step::Up,
+        Step::Down,
+        Step::Up,
+        Step::Shot("点两下：19 pt"),
         Step::Press(KeyCode::Tab, false),
-        Step::Shot("Tab：焦点环到下一个开关"),
-        Step::Press(KeyCode::Space, false),
-        Step::Shot("空格：切换它"),
-        Step::Move(Key::ROOT.child("恢复默认")),
+        Step::Shot("Tab：焦点环到译文字号"),
+        Step::Press(KeyCode::ArrowUp, false),
+        Step::Shot("↑：译文字号 14 pt"),
+        Step::Move(Key::ROOT.child("animations")),
         Step::Down,
-        Step::Shot("按住「恢复默认」"),
+        Step::Shot("按住开关：旋钮拉宽"),
         Step::Up,
-        Step::Move(sidebar(2)),
+        Step::Shot("松开：过渡动画关了"),
+        Step::Move(option("Engine", 1)),
         Step::Down,
         Step::Up,
-        Step::Shot("点「外观」切页"),
-        Step::Dark,
-        Step::Move(sidebar(1)),
+        Step::Shot("选「系统绘制」：字体与字号变灰"),
+        Step::Move(option("Appearance", 2)),
         Step::Down,
         Step::Up,
         Step::Press(KeyCode::Tab, false),
-        Step::Shot("深色，Tab 后的焦点环"),
+        Step::Shot("外观选「深色」，再按 Tab"),
     ];
 
     let mut shots: Vec<(&str, Pixmap)> = Vec::new();
     // 先出一帧，交互层才有元素的位置
-    frame::render(&mut stage, &mut interaction, &demo, SCALE, SIZE)?;
+    frame::render(&mut studio, &mut interaction, &demo, SCALE, SIZE)?;
     for step in steps {
         let event = match step {
             Step::Shot(caption) => {
-                let frame = frame::render(&mut stage, &mut interaction, &demo, SCALE, SIZE)?;
+                let frame = frame::render(&mut studio, &mut interaction, &demo, SCALE, SIZE)?;
                 let painted = frame.painted;
                 let pixmap = painted
                     .pixmap
@@ -110,11 +118,6 @@ pub fn run(directory: &Path) -> Result<(), Box<dyn std::error::Error>> {
                     ..Modifiers::default()
                 },
             )),
-            Step::Dark => {
-                demo.dark = true;
-                frame::render(&mut stage, &mut interaction, &demo, SCALE, SIZE)?;
-                continue;
-            }
         };
         let response = interaction.handle(&event);
         let rebuild = response.needs_rebuild();
@@ -125,11 +128,11 @@ pub fn run(directory: &Path) -> Result<(), Box<dyn std::error::Error>> {
             demo.update(message);
         }
         if rebuild {
-            frame::render(&mut stage, &mut interaction, &demo, SCALE, SIZE)?;
+            frame::render(&mut studio, &mut interaction, &demo, SCALE, SIZE)?;
         }
     }
 
-    let sheet = sheet(&mut stage, shots)?;
+    let sheet = sheet(&mut studio.stage, shots)?;
     let path = directory.join("sheet.png");
     sheet.save_png(&path)?;
     println!("{}：总览", path.display());

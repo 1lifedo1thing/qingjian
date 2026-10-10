@@ -1,113 +1,25 @@
-//! 设置页的视图函数：左侧栏 + 右侧分组卡片（标题、说明、开关）+ 「恢复默认」按钮。
-//!
-//! 控件按 [`ElementState`] 挑样式（悬停、按下、键盘焦点环）；尺寸按点写，建树时乘 `scale`。
+//! 设置页的视图函数：竹青侧栏（搜索、线性图标的导航、竹节标记）+ 分组卡片里的「候选窗口」设置，控件全用引擎的控件库。
+
+use std::sync::Arc;
 
 use render_engine::taffy::{
-    AlignItems, Dimension, FlexDirection, JustifyContent, LengthPercentage, LengthPercentageAuto,
-    NodeId, Position, Rect, Size, Style,
+    Dimension, FlexDirection, JustifyContent, LengthPercentage, LengthPercentageAuto, NodeId,
+    Position, Rect, Size, Style,
 };
-use std::time::Duration;
-
 use render_engine::{
-    BoxPaint, Color, Easing, Effect, EffectKind, ElementState, Fill, FontSpec, FontWeight,
-    Interact, KeyCode, RenderError, TextStyle, Ui, Visual,
+    Button, Checkbox, FamilyId, FontSpec, FontWeight, Interact, KeyCode, NavItem, RenderError,
+    SearchField, Segmented, Select, SettingRow, Stepper, Switch, TextStyle, Ui, Visual,
+    WidgetTheme, group, section_title,
 };
 
-use crate::demo::{Demo, GROUPS, Message, PAGES, Row};
+use crate::demo::{
+    APPEARANCES, Choice, Demo, ENGINES, LAYOUTS, Message, PAGES, PINYIN, Size as Font,
+};
+use crate::icons::{Glyph, PAGE_GLYPHS};
+use crate::palette::{DARK, LIGHT, Palette};
 
 /// 窗口顶上让给系统标题栏按钮的高度（点）：macOS 内容铺到标题栏下面，侧栏要躲开红绿灯。
-const TITLEBAR: f32 = if cfg!(target_os = "macos") { 28.0 } else { 8.0 };
-
-/// 悬停、按下这类颜色变化。
-const HOVER: Duration = Duration::from_millis(120);
-
-/// 开关拨过去：旋钮略冲过头再回来。
-const FLIP: Duration = Duration::from_millis(240);
-
-const FLIP_EASING: Easing = Easing::Bezier([0.3, 1.25, 0.5, 1.0]);
-
-pub struct Palette {
-    window: Color,
-
-    sidebar: Color,
-
-    /// 侧栏项悬停、按下时垫的底。
-    hover: Color,
-
-    pressed: Color,
-
-    selected: Color,
-
-    card: Color,
-
-    border: Color,
-
-    label: Color,
-
-    secondary: Color,
-
-    accent: Color,
-
-    accent_hover: Color,
-
-    track_off: Color,
-
-    track_off_hover: Color,
-
-    knob: Color,
-
-    focus: Color,
-
-    button: Color,
-
-    button_hover: Color,
-
-    button_pressed: Color,
-}
-
-impl Palette {
-    pub const LIGHT: Self = Self {
-        window: Color::rgb(0xF5, 0xF5, 0xF7),
-        sidebar: Color::rgb(0xEB, 0xEB, 0xEE),
-        hover: Color::gray(0, 12),
-        pressed: Color::gray(0, 30),
-        selected: Color::gray(0, 22),
-        card: Color::rgb(0xFF, 0xFF, 0xFF),
-        border: Color::gray(0, 18),
-        label: Color::gray(0, 222),
-        secondary: Color::gray(0, 128),
-        accent: Color::rgb(0x0A, 0x84, 0xFF),
-        accent_hover: Color::rgb(0x30, 0x97, 0xFF),
-        track_off: Color::gray(0, 30),
-        track_off_hover: Color::gray(0, 46),
-        knob: Color::rgb(0xFF, 0xFF, 0xFF),
-        focus: Color::rgba(0x0A, 0x84, 0xFF, 150),
-        button: Color::rgb(0xFF, 0xFF, 0xFF),
-        button_hover: Color::rgb(0xF2, 0xF2, 0xF4),
-        button_pressed: Color::rgb(0xE2, 0xE2, 0xE6),
-    };
-
-    pub const DARK: Self = Self {
-        window: Color::rgb(0x1E, 0x1E, 0x20),
-        sidebar: Color::rgb(0x28, 0x28, 0x2B),
-        hover: Color::gray(255, 14),
-        pressed: Color::gray(255, 34),
-        selected: Color::gray(255, 26),
-        card: Color::rgb(0x2C, 0x2C, 0x2F),
-        border: Color::gray(255, 20),
-        label: Color::gray(255, 222),
-        secondary: Color::gray(255, 140),
-        accent: Color::rgb(0x0A, 0x84, 0xFF),
-        accent_hover: Color::rgb(0x30, 0x97, 0xFF),
-        track_off: Color::gray(255, 40),
-        track_off_hover: Color::gray(255, 58),
-        knob: Color::rgb(0xF2, 0xF2, 0xF2),
-        focus: Color::rgba(0x40, 0x9C, 0xFF, 170),
-        button: Color::rgb(0x3A, 0x3A, 0x3E),
-        button_hover: Color::rgb(0x44, 0x44, 0x48),
-        button_pressed: Color::rgb(0x52, 0x52, 0x57),
-    };
-}
+const TITLEBAR: f32 = if cfg!(target_os = "macos") { 28.0 } else { 0.0 };
 
 /// 建整窗的场景树，根节点就是窗口大小（像素）。
 pub fn view(
@@ -115,15 +27,14 @@ pub fn view(
     demo: &Demo,
     scale: f32,
     (width, height): (u32, u32),
+    serif: FamilyId,
 ) -> Result<NodeId, RenderError> {
+    let palette = if demo.dark() { &DARK } else { &LIGHT };
     let page = Page {
-        palette: if demo.dark {
-            &Palette::DARK
-        } else {
-            &Palette::LIGHT
-        },
-        scale,
+        theme: WidgetTheme::new(palette.widgets, scale),
+        palette,
         demo,
+        serif,
     };
     let sidebar = page.sidebar(ui)?;
     let content = page.content(ui)?;
@@ -136,7 +47,7 @@ pub fn view(
             flex_direction: FlexDirection::Row,
             ..Style::default()
         },
-        Visual::solid(page.palette.window, 0.0),
+        Visual::solid(palette.window, 0.0),
         &[sidebar, content],
     )?;
     let key = ui.key("root");
@@ -149,16 +60,261 @@ pub fn view(
 }
 
 struct Page<'a> {
+    theme: WidgetTheme,
+
     palette: &'a Palette,
 
-    scale: f32,
-
     demo: &'a Demo,
+
+    serif: FamilyId,
 }
 
 impl Page<'_> {
     fn px(&self, points: f32) -> f32 {
-        points * self.scale
+        self.theme.px(points)
+    }
+
+    fn sidebar(&self, ui: &mut Ui<Message>) -> Result<NodeId, RenderError> {
+        let theme = &self.theme;
+        let search = SearchField::new("搜索")
+            .icon(Arc::new(Glyph::Search))
+            .build(ui, theme, "search")?;
+        let items = ui.scope("nav", |ui| -> Result<Vec<NodeId>, RenderError> {
+            let mut items = Vec::new();
+            for (index, name) in PAGES.iter().enumerate() {
+                let selected = index == self.demo.page;
+                let mut item = NavItem::new(name)
+                    .icon(Arc::new(PAGE_GLYPHS[index]))
+                    .selected(selected);
+                if selected {
+                    item = item.accessory(self.joint(ui)?);
+                }
+                items.push(item.build(ui, theme, index, Message::Page(index))?);
+            }
+            Ok(items)
+        })?;
+        let list = ui.scene().node(
+            Style {
+                flex_direction: FlexDirection::Column,
+                gap: self.gap(1.0),
+                margin: Rect {
+                    top: LengthPercentageAuto::length(self.px(12.0)),
+                    ..Rect::zero()
+                },
+                ..Style::default()
+            },
+            Visual::Group,
+            &items,
+        )?;
+        ui.scene().node(
+            Style {
+                size: Size {
+                    width: Dimension::length(self.px(216.0)),
+                    height: Dimension::auto(),
+                },
+                flex_shrink: 0.0,
+                flex_direction: FlexDirection::Column,
+                padding: Rect {
+                    top: LengthPercentage::length(self.px(TITLEBAR + 14.0)),
+                    ..self.padding(16.0, 14.0)
+                },
+                ..Style::default()
+            },
+            Visual::solid(self.palette.sidebar, 0.0),
+            &[search, list],
+        )
+    }
+
+    /// 当前页的竹节：选中项左边一段中间断开的竖线（品牌元素，由使用方叠到导航项上）。
+    fn joint(&self, ui: &mut Ui<Message>) -> Result<NodeId, RenderError> {
+        let (thick, length) = (self.px(2.0), self.px(16.0));
+        let part = length * 0.42;
+        let mut pieces = Vec::new();
+        for top in [0.0, length - part] {
+            pieces.push(ui.scene().node(
+                Style {
+                    position: Position::Absolute,
+                    size: Size {
+                        width: Dimension::length(thick),
+                        height: Dimension::length(part),
+                    },
+                    inset: Rect {
+                        left: LengthPercentageAuto::length(0.0),
+                        top: LengthPercentageAuto::length(top),
+                        right: LengthPercentageAuto::auto(),
+                        bottom: LengthPercentageAuto::auto(),
+                    },
+                    ..Style::default()
+                },
+                Visual::solid(self.theme.colors.accent, thick / 2.0),
+                &[],
+            )?);
+        }
+        let column = ui.scene().node(
+            Style {
+                size: Size {
+                    width: Dimension::length(thick),
+                    height: Dimension::length(length),
+                },
+                ..Style::default()
+            },
+            Visual::Group,
+            &pieces,
+        )?;
+        ui.scene().node(
+            Style {
+                position: Position::Absolute,
+                flex_direction: FlexDirection::Column,
+                justify_content: Some(JustifyContent::CENTER),
+                inset: Rect {
+                    left: LengthPercentageAuto::length(-self.px(9.0)),
+                    top: LengthPercentageAuto::length(0.0),
+                    right: LengthPercentageAuto::auto(),
+                    bottom: LengthPercentageAuto::length(0.0),
+                },
+                ..Style::default()
+            },
+            Visual::Group,
+            &[column],
+        )
+    }
+
+    fn content(&self, ui: &mut Ui<Message>) -> Result<NodeId, RenderError> {
+        let title = PAGES.get(self.demo.page).copied().unwrap_or_default();
+        let mut children = vec![self.title(ui, title)?];
+        if self.demo.page == 1 {
+            children.extend(self.candidates(ui)?);
+        }
+        ui.scene().node(
+            Style {
+                flex_grow: 1.0,
+                flex_direction: FlexDirection::Column,
+                gap: self.gap(10.0),
+                padding: Rect {
+                    top: LengthPercentage::length(self.px(TITLEBAR + 12.0)),
+                    ..self.padding(28.0, 36.0)
+                },
+                ..Style::default()
+            },
+            Visual::Group,
+            &children,
+        )
+    }
+
+    /// 页标题用宋体。
+    fn title(&self, ui: &mut Ui<Message>, text: &str) -> Result<NodeId, RenderError> {
+        let font = FontSpec {
+            weight: FontWeight(700),
+            family: self.serif,
+            ..FontSpec::new(26.0, 34.0)
+        };
+        ui.scene().node(
+            Style::default(),
+            Visual::Text {
+                text: text.to_owned(),
+                style: TextStyle::new(font.scaled(self.theme.scale), 26.0, self.palette.ink, 1.0),
+            },
+            &[],
+        )
+    }
+
+    /// 「候选窗口」页：外观、排布、文字、动效四组。
+    fn candidates(&self, ui: &mut Ui<Message>) -> Result<Vec<NodeId>, RenderError> {
+        let theme = &self.theme;
+        let demo = self.demo;
+        let mut out = Vec::new();
+
+        let appearance = self.choice(ui, Choice::Appearance, &APPEARANCES)?;
+        let row = SettingRow::new("外观")
+            .control(appearance)
+            .build(ui, theme)?;
+        out.push(section_title(ui, theme, "外观")?);
+        out.push(group(ui, theme, &[row])?);
+
+        let layout = self.choice(ui, Choice::Layout, &LAYOUTS)?;
+        let expand = Checkbox::new(demo.expand, "横排时 ↑ / ↓ 展开成多行")
+            .disabled(demo.layout == 0)
+            .build(ui, theme, "expand", Message::Expand)?;
+        let layout = SettingRow::new("排布")
+            .control(layout)
+            .below(expand)
+            .build(ui, theme)?;
+        let pinyin = self.choice(ui, Choice::Pinyin, &PINYIN)?;
+        let pinyin = SettingRow::new("拼音显示位置")
+            .control(pinyin)
+            .build(ui, theme)?;
+        out.push(section_title(ui, theme, "排布")?);
+        out.push(group(ui, theme, &[layout, pinyin])?);
+
+        let engine = self.choice(ui, Choice::Engine, &ENGINES)?;
+        let engine = SettingRow::new("渲染引擎")
+            .control(engine)
+            .build(ui, theme)?;
+        let custom = demo.engine == 0;
+        let font = Select::new("系统字体")
+            .width(180.0)
+            .disabled(!custom)
+            .build(ui, theme, "font", Message::OpenFonts)?;
+        let font = SettingRow::new("字体").control(font).build(ui, theme)?;
+        let candidate = self.size(ui, Font::Candidate, !custom)?;
+        let candidate = SettingRow::new("候选字号")
+            .control(candidate)
+            .build(ui, theme)?;
+        let gloss = self.size(ui, Font::Gloss, !custom)?;
+        let reset = Button::new("恢复主题字号").disabled(!custom).build(
+            ui,
+            theme,
+            "reset-sizes",
+            Message::ResetSizes,
+        )?;
+        let gloss = SettingRow::new("译文字号")
+            .control(gloss)
+            .below(reset)
+            .build(ui, theme)?;
+        out.push(section_title(ui, theme, "文字")?);
+        out.push(group(ui, theme, &[engine, font, candidate, gloss])?);
+
+        let animations =
+            Switch::new(demo.animations).build(ui, theme, "animations", Message::Animations)?;
+        let animations = SettingRow::new("过渡动画")
+            .control(animations)
+            .build(ui, theme)?;
+        out.push(section_title(ui, theme, "动效")?);
+        out.push(group(ui, theme, &[animations])?);
+        Ok(out)
+    }
+
+    fn choice(
+        &self,
+        ui: &mut Ui<Message>,
+        choice: Choice,
+        options: &[&str],
+    ) -> Result<NodeId, RenderError> {
+        Segmented::new(options, self.demo.choice(choice)).build(
+            ui,
+            &self.theme,
+            format!("{choice:?}"),
+            move |index| Message::Choose(choice, index),
+        )
+    }
+
+    fn size(
+        &self,
+        ui: &mut Ui<Message>,
+        size: Font,
+        disabled: bool,
+    ) -> Result<NodeId, RenderError> {
+        let (down, up) = self.demo.size_limits(size);
+        Stepper::new(&format!("{} pt", self.demo.size(size)))
+            .limits(down, up)
+            .disabled(disabled)
+            .build(
+                ui,
+                &self.theme,
+                format!("{size:?}"),
+                Message::Step(size, -1),
+                Message::Step(size, 1),
+            )
     }
 
     fn padding(&self, vertical: f32, horizontal: f32) -> Rect<LengthPercentage> {
@@ -179,337 +335,5 @@ impl Page<'_> {
             width: LengthPercentage::length(self.px(points)),
             height: LengthPercentage::length(self.px(points)),
         }
-    }
-
-    /// 键盘焦点环：画成内侧边框。
-    fn ring(&self, state: ElementState) -> Option<(f32, Color)> {
-        state.focus_ring.then(|| (self.px(2.0), self.palette.focus))
-    }
-
-    fn text(
-        &self,
-        ui: &mut Ui<Message>,
-        content: &str,
-        points: f32,
-        weight: u16,
-        color: Color,
-    ) -> Result<NodeId, RenderError> {
-        let font = FontSpec {
-            weight: FontWeight(weight),
-            ..FontSpec::new(points, points * 1.35)
-        };
-        let style = TextStyle::new(font.scaled(self.scale), points, color, 1.0);
-        ui.scene().node(
-            Style::default(),
-            Visual::Text {
-                text: content.to_owned(),
-                style,
-            },
-            &[],
-        )
-    }
-
-    fn sidebar(&self, ui: &mut Ui<Message>) -> Result<NodeId, RenderError> {
-        let mut items = Vec::new();
-        for (index, name) in PAGES.iter().enumerate() {
-            items.push(self.sidebar_item(ui, index, name)?);
-        }
-        ui.scene().node(
-            Style {
-                size: Size {
-                    width: Dimension::length(self.px(180.0)),
-                    height: Dimension::auto(),
-                },
-                flex_shrink: 0.0,
-                flex_direction: FlexDirection::Column,
-                gap: self.gap(2.0),
-                padding: Rect {
-                    top: LengthPercentage::length(self.px(TITLEBAR + 8.0)),
-                    ..self.padding(16.0, 10.0)
-                },
-                ..Style::default()
-            },
-            Visual::solid(self.palette.sidebar, 0.0),
-            &items,
-        )
-    }
-
-    fn sidebar_item(
-        &self,
-        ui: &mut Ui<Message>,
-        index: usize,
-        name: &str,
-    ) -> Result<NodeId, RenderError> {
-        let key = ui.scope("sidebar", |ui| ui.key(index));
-        let state = ui.state(key);
-        let selected = index == self.demo.page;
-        let fill = if state.pressed {
-            Some(self.palette.pressed)
-        } else if selected {
-            Some(self.palette.selected)
-        } else if state.hovered {
-            Some(self.palette.hover)
-        } else {
-            None
-        };
-        let weight = if selected { 600 } else { 400 };
-        let label = self.text(ui, name, 13.0, weight, self.palette.label)?;
-        let node = ui.scene().node(
-            Style {
-                padding: self.padding(6.0, 10.0),
-                ..Style::default()
-            },
-            Visual::Box(BoxPaint {
-                fill: fill.map(Fill::Solid),
-                border: self.ring(state),
-                radius: self.px(6.0),
-            }),
-            &[label],
-        )?;
-        ui.transition(node, key, HOVER, Easing::Ease);
-        ui.interact(
-            node,
-            key,
-            Interact::new().on_click(Message::Select(index)).focusable(),
-        );
-        Ok(node)
-    }
-
-    fn content(&self, ui: &mut Ui<Message>) -> Result<NodeId, RenderError> {
-        let title = PAGES.get(self.demo.page).copied().unwrap_or_default();
-        let mut children = vec![self.text(ui, title, 22.0, 700, self.palette.label)?];
-        if self.demo.page == 1 {
-            let mut index = 0;
-            for (title, rows) in GROUPS {
-                children.push(self.text(ui, title, 12.0, 600, self.palette.secondary)?);
-                children.push(self.card(ui, rows, index)?);
-                index += rows.len();
-            }
-            let reset = self.button(ui, "恢复默认", Message::Reset)?;
-            children.push(ui.scene().node(
-                Style {
-                    flex_direction: FlexDirection::Row,
-                    justify_content: Some(JustifyContent::FLEX_END),
-                    ..Style::default()
-                },
-                Visual::Group,
-                &[reset],
-            )?);
-        } else {
-            children.push(self.text(ui, "这一页还没做", 13.0, 400, self.palette.secondary)?);
-        }
-        ui.scene().node(
-            Style {
-                flex_grow: 1.0,
-                flex_direction: FlexDirection::Column,
-                gap: self.gap(10.0),
-                padding: self.padding(20.0, 24.0),
-                ..Style::default()
-            },
-            Visual::Group,
-            &children,
-        )
-    }
-
-    /// 一组设置行；`first` 是第一行开关在 [`Demo::switches`] 里的下标。
-    fn card(
-        &self,
-        ui: &mut Ui<Message>,
-        rows: &[Row],
-        first: usize,
-    ) -> Result<NodeId, RenderError> {
-        let mut children = Vec::new();
-        for (offset, (label, detail, _)) in rows.iter().enumerate() {
-            if offset > 0 {
-                children.push(ui.scene().node(
-                    Style {
-                        size: Size {
-                            width: Dimension::auto(),
-                            height: Dimension::length(self.px(1.0)),
-                        },
-                        ..Style::default()
-                    },
-                    Visual::solid(self.palette.border, 0.0),
-                    &[],
-                )?);
-            }
-            children.push(self.row(ui, label, detail, first + offset)?);
-        }
-        ui.scene().node(
-            Style {
-                flex_direction: FlexDirection::Column,
-                padding: self.padding(0.0, 14.0),
-                ..Style::default()
-            },
-            Visual::Box(BoxPaint {
-                fill: Some(Fill::Solid(self.palette.card)),
-                border: Some((self.px(1.0), self.palette.border)),
-                radius: self.px(10.0),
-            }),
-            &children,
-        )
-    }
-
-    fn row(
-        &self,
-        ui: &mut Ui<Message>,
-        label: &str,
-        detail: &str,
-        index: usize,
-    ) -> Result<NodeId, RenderError> {
-        let title = self.text(ui, label, 13.0, 400, self.palette.label)?;
-        let description = self.text(ui, detail, 11.0, 400, self.palette.secondary)?;
-        let texts = ui.scene().node(
-            Style {
-                flex_direction: FlexDirection::Column,
-                gap: self.gap(2.0),
-                ..Style::default()
-            },
-            Visual::Group,
-            &[title, description],
-        )?;
-        let switch = self.switch(ui, index)?;
-        ui.scene().node(
-            Style {
-                flex_direction: FlexDirection::Row,
-                justify_content: Some(JustifyContent::SPACE_BETWEEN),
-                align_items: Some(AlignItems::CENTER),
-                padding: self.padding(10.0, 0.0),
-                ..Style::default()
-            },
-            Visual::Group,
-            &[texts, switch],
-        )
-    }
-
-    /// 开关：悬停时轨道加深，按下时旋钮拉宽（同 macOS / iOS），键盘焦点时外圈画焦点环。
-    fn switch(&self, ui: &mut Ui<Message>, index: usize) -> Result<NodeId, RenderError> {
-        let key = ui.scope("switch", |ui| ui.key(index));
-        let state = ui.state(key);
-        let on = self.demo.switches.get(index).copied().unwrap_or(false);
-        let (track_w, track_h, inset) = (self.px(38.0), self.px(22.0), self.px(2.0));
-        let knob_h = track_h - inset * 2.0;
-        let knob_w = if state.pressed {
-            knob_h + self.px(5.0)
-        } else {
-            knob_h
-        };
-        let knob = ui.scene().node(
-            Style {
-                position: Position::Absolute,
-                size: Size {
-                    width: Dimension::length(knob_w),
-                    height: Dimension::length(knob_h),
-                },
-                inset: Rect {
-                    left: LengthPercentageAuto::length(if on {
-                        track_w - inset - knob_w
-                    } else {
-                        inset
-                    }),
-                    right: LengthPercentageAuto::auto(),
-                    top: LengthPercentageAuto::length(inset),
-                    bottom: LengthPercentageAuto::auto(),
-                },
-                ..Style::default()
-            },
-            Visual::solid(self.palette.knob, knob_h / 2.0),
-            &[],
-        )?;
-        ui.transition(knob, key.child("knob"), FLIP, FLIP_EASING);
-        ui.scene().set_effects(
-            knob,
-            vec![Effect {
-                kind: EffectKind::DropShadow,
-                x: 0.0,
-                y: self.px(1.0),
-                blur: self.px(2.0),
-                spread: 0.0,
-                color: Color::gray(0, 60),
-            }],
-        );
-        let mut children = vec![knob];
-        if let Some(border) = self.ring(state) {
-            let outset = LengthPercentageAuto::length(-self.px(3.0));
-            children.push(ui.scene().node(
-                Style {
-                    position: Position::Absolute,
-                    inset: Rect {
-                        left: outset,
-                        right: outset,
-                        top: outset,
-                        bottom: outset,
-                    },
-                    ..Style::default()
-                },
-                Visual::Box(BoxPaint {
-                    fill: None,
-                    border: Some(border),
-                    radius: track_h / 2.0 + self.px(3.0),
-                }),
-                &[],
-            )?);
-        }
-        let track = match (on, state.hovered) {
-            (true, false) => self.palette.accent,
-            (true, true) => self.palette.accent_hover,
-            (false, false) => self.palette.track_off,
-            (false, true) => self.palette.track_off_hover,
-        };
-        let node = ui.scene().node(
-            Style {
-                size: Size {
-                    width: Dimension::length(track_w),
-                    height: Dimension::length(track_h),
-                },
-                flex_shrink: 0.0,
-                ..Style::default()
-            },
-            Visual::solid(track, track_h / 2.0),
-            &children,
-        )?;
-        ui.transition(node, key, FLIP, Easing::Ease);
-        ui.interact(
-            node,
-            key,
-            Interact::new().on_click(Message::Toggle(index)).focusable(),
-        );
-        Ok(node)
-    }
-
-    fn button(
-        &self,
-        ui: &mut Ui<Message>,
-        label: &str,
-        message: Message,
-    ) -> Result<NodeId, RenderError> {
-        let key = ui.key(label);
-        let state = ui.state(key);
-        let fill = if state.pressed {
-            self.palette.button_pressed
-        } else if state.hovered {
-            self.palette.button_hover
-        } else {
-            self.palette.button
-        };
-        let text = self.text(ui, label, 13.0, 400, self.palette.label)?;
-        let node = ui.scene().node(
-            Style {
-                padding: self.padding(5.0, 14.0),
-                ..Style::default()
-            },
-            Visual::Box(BoxPaint {
-                fill: Some(Fill::Solid(fill)),
-                border: Some(
-                    self.ring(state)
-                        .unwrap_or((self.px(1.0), self.palette.border)),
-                ),
-                radius: self.px(6.0),
-            }),
-            &[text],
-        )?;
-        ui.transition(node, key, HOVER, Easing::Ease);
-        ui.interact(node, key, Interact::new().on_click(message).focusable());
-        Ok(node)
     }
 }
