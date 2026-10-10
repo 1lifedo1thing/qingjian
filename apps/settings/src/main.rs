@@ -15,6 +15,7 @@ mod paths;
 mod previews;
 mod settings;
 mod snapshot;
+mod update;
 mod view;
 
 use std::path::PathBuf;

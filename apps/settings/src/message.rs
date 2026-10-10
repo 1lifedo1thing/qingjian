@@ -60,6 +60,7 @@ pub enum Message {
     /// Esc：扔掉没存的改动。
     Cancel(FieldId),
     TestCloud,
+    CheckUpdate,
     /// 展开 / 收起「关于」页的数据来源。
     ToggleSources,
     Quit,

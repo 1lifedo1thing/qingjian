@@ -12,8 +12,8 @@ use render_engine::{
 };
 
 use super::Page;
-use super::advanced::actions;
-use super::controls::{choice, toggle};
+use super::advanced::{actions, with_notice};
+use super::controls::{choice, toggle_info};
 use crate::action::Action;
 use crate::message::Message;
 
@@ -65,10 +65,55 @@ pub fn about(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderErr
         UpdateChannel::label,
         |value| Message::set("update", "channel", value.key()),
     )?;
-    let rows = vec![
-        toggle(ui, page, "自动检查更新", ("update", "check"), update.check)?,
-        SettingRow::new("渠道").control(channel).build(ui, theme)?,
+    let running = page.settings.update.running();
+    let check = Button::new(if running {
+        "正在检查…"
+    } else {
+        "立即检查"
+    })
+    .disabled(running)
+    .build(ui, theme, "check-update", Message::CheckUpdate)?;
+    let mut rows = vec![
+        toggle_info(
+            ui,
+            page,
+            "自动检查更新",
+            Some("每天向官网读一次版本列表，有新版在这里和菜单里提示，不会自动下载安装"),
+            ("update", "check"),
+            update.check,
+            false,
+        )?,
+        SettingRow::new("渠道")
+            .info("测试版渠道还会提示 alpha / beta / rc 版本")
+            .control(channel)
+            .build(ui, theme)?,
+        with_notice(
+            ui,
+            page,
+            SettingRow::new("检查更新").control(check),
+            "update",
+        )?,
     ];
+    if let Some(found) = page.settings.update.available(update) {
+        let title = format!("新版本 {}", found.version);
+        let download = Button::new("下载").primary().build(
+            ui,
+            theme,
+            "download",
+            Message::Run(Action::OpenDownload),
+        )?;
+        rows.push(SettingRow::new(&title).control(download).build(ui, theme)?);
+        let notes = found
+            .notes
+            .iter()
+            .take(6)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("\n");
+        if !notes.is_empty() {
+            rows.push(note(ui, page, None, &notes)?);
+        }
+    }
     out.push(section_title(ui, theme, "更新")?);
     out.push(group(ui, theme, &rows)?);
 

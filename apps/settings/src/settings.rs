@@ -17,6 +17,7 @@ use crate::cloud::CloudTest;
 use crate::message::{FieldId, Message, Popup, SizeKind};
 use crate::page_id::PageId;
 use crate::previews::Previews;
+use crate::update::UpdateCheck;
 use crate::view;
 
 /// 字号步进的范围（点）。
@@ -58,6 +59,8 @@ pub struct Settings {
 
     pub cloud_test: CloudTest,
 
+    pub update: UpdateCheck,
+
     waker: Option<Waker>,
 
     /// 「关于」页的数据来源展开着。
@@ -94,6 +97,7 @@ impl Settings {
             sources_open: false,
             fields: HashMap::new(),
             cloud_test: CloudTest::default(),
+            update: UpdateCheck::load(),
             waker: None,
         }
         .with_fields())
@@ -223,7 +227,10 @@ impl App for Settings {
 
     fn update(&mut self, message: Message) -> bool {
         let armed = self.armed.take();
-        if !matches!(message, Message::Run(_) | Message::TestCloud) {
+        if !matches!(
+            message,
+            Message::Run(_) | Message::TestCloud | Message::CheckUpdate
+        ) {
             self.notice = None;
         }
         match message {
@@ -241,6 +248,15 @@ impl App for Settings {
                     .and_then(|field| field.apply(&edit))
                 {
                     render_engine::set_clipboard(&copied);
+                }
+            }
+            Message::CheckUpdate => {
+                if !self.update.running() {
+                    let started = self.update.start(&self.config.update, self.waker.clone());
+                    self.notice = Some((
+                        "update",
+                        started.err().unwrap_or_else(|| "正在检查…".to_owned()),
+                    ));
                 }
             }
             Message::Commit(id) => self.commit(id),
@@ -311,13 +327,16 @@ impl App for Settings {
     }
 
     fn wake(&mut self) -> bool {
-        match self.cloud_test.finish() {
-            Some(text) => {
-                self.notice = Some(("cloud", text));
-                true
-            }
-            None => false,
+        let mut changed = false;
+        if let Some(text) = self.cloud_test.finish() {
+            self.notice = Some(("cloud", text));
+            changed = true;
         }
+        if let Some(text) = self.update.finish(&self.config.update) {
+            self.notice = Some(("update", text));
+            changed = true;
+        }
+        changed
     }
 
     fn set_system_dark(&mut self, dark: bool) {

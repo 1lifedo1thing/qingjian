@@ -3580,6 +3580,7 @@ dependencies = [
  "qingjian-platform",
  "qingjian-predict",
  "qingjian-render",
+ "qingjian-update",
  "render-engine",
  "toml_edit",
  "tracing",

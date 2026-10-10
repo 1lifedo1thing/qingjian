@@ -21,6 +21,8 @@ pub enum Action {
     ClearInputLog,
     OpenWebsite,
     OpenRepository,
+    /// 官网的下载页。
+    OpenDownload,
 }
 
 impl Action {
@@ -31,6 +33,7 @@ impl Action {
             Self::ClearInputLog => "input-log",
             Self::OpenConfig | Self::OpenDataDir => "config",
             Self::OpenWebsite | Self::OpenRepository => "links",
+            Self::OpenDownload => "update",
         }
     }
 
@@ -47,6 +50,7 @@ impl Action {
             Self::ClearInputLog => clear_input_log().map(|()| "输入日志已清空".to_owned()),
             Self::OpenWebsite => open(WEBSITE_URL).map(|()| String::new()),
             Self::OpenRepository => open(REPOSITORY_URL).map(|()| String::new()),
+            Self::OpenDownload => open(qingjian_update::DOWNLOAD_URL).map(|()| String::new()),
         };
         match result {
             Ok(message) => (!message.is_empty()).then_some(message),
