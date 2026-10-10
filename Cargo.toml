@@ -1,0 +1,30 @@
+[workspace]
+resolver = "3"
+members = ["crates/render-engine"]
+
+[workspace.package]
+version = "0.1.0-dev"
+edition = "2024"
+license = "GPL-3.0-only"
+repository = "https://github.com/yenharvey/render-engine"
+
+[workspace.lints.clippy]
+all = "warn"
+
+[workspace.dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.20"
+tracing = "0.1.44"
+tiny-skia = "0.12.0"
+# 不开 fontconfig：不扫系统字体库，字体文件由引擎按平台清单自己加载
+cosmic-text = { version = "0.19.0", default-features = false, features = ["std", "swash"] }
+# 字形轮廓的路径命令（cosmic-text 取轮廓返回它，文字描边用）；与 swash 用的同一版本
+zeno = { version = "0.3.3", default-features = false }
+# 场景图的布局：只要 flexbox 与 grid，不要 block / float
+taffy = { version = "0.14.0", default-features = false, features = ["std", "taffy_tree", "flexbox", "grid"] }
+
+# cosmic-text 加了 opsz 光学字号支持（FontSystem::set_optical_size），补丁在 fork 的 qingjian-opsz 分支，基于 0.19.0；
+# 上游收了就删掉这段回 crates.io
+[patch.crates-io]
+cosmic-text = { git = "https://github.com/qingjian-team/cosmic-text", rev = "9cf0d65a5e4db381e34907103326673386096be3" }
