@@ -1,9 +1,10 @@
 //! 控件产出的消息：多数是「把配置文件里的某一项改成某个值」，其余是界面自己的状态与按钮动作。
 
-use render_engine::Edit;
+use render_engine::{Edit, KeyPress};
 
 use crate::action::Action;
 use crate::page_id::PageId;
+use crate::shortcut::Shortcut;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SizeKind {
@@ -60,6 +61,16 @@ pub enum Message {
     /// Esc：扔掉没存的改动。
     Cancel(FieldId),
     TestCloud,
+    /// 开始录这个快捷键。
+    Record(Shortcut),
+    /// 录制中按下的键。
+    Recorded(Shortcut, KeyPress),
+    /// Esc 或点了别处：不录了。
+    StopRecording,
+    /// 快捷键页的「恢复默认」。
+    ResetShortcuts,
+    /// 表达式、问字两个模式键之一换成这个字母（撞了就对调）。
+    ModeKey(&'static str, char),
     CheckUpdate,
     /// 展开 / 收起「关于」页的数据来源。
     ToggleSources,

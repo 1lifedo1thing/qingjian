@@ -5,9 +5,10 @@ use render_engine::taffy::LengthPercentage;
 use render_engine::taffy::{Dimension, FlexDirection, FlexWrap, NodeId, Rect, Size, Style};
 use render_engine::{Checkbox, RenderError, SettingRow, Switch, Ui, Visual, group, section_title};
 
-use super::Page;
 use super::controls::{select, toggle_info, toggle_with};
+use super::{Page, shortcuts};
 use crate::message::{Message, Popup};
+use crate::shortcut::Shortcut;
 
 /// 模糊音的九条：配置键、界面名。
 const FUZZY: [(&str, &str); 9] = [
@@ -94,6 +95,13 @@ pub fn input(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderErr
             "码删空后留在辅码",
             ("general", "aux_code_keep_empty"),
             general.aux_code_keep_empty,
+            !aux.enabled,
+        )?,
+        shortcuts::recorder(
+            ui,
+            page,
+            Shortcut::AuxCodeKey,
+            "拼音打完敲它进辅码；微软、搜狗双拼里分号先当韵母",
             !aux.enabled,
         )?,
     ];

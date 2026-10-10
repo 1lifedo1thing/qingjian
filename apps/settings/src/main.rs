@@ -14,6 +14,7 @@ mod palette;
 mod paths;
 mod previews;
 mod settings;
+mod shortcut;
 mod snapshot;
 mod update;
 mod view;

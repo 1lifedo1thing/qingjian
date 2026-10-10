@@ -10,6 +10,7 @@ mod controls;
 mod input;
 mod language;
 mod menus;
+pub(super) mod shortcuts;
 mod sidebar;
 mod themes;
 
@@ -111,6 +112,7 @@ fn content(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
         PageId::Candidates => candidates::candidates(ui, page)?,
         PageId::Language => language::language(ui, page)?,
         PageId::Appearance => appearance::appearance(ui, page)?,
+        PageId::Shortcuts => shortcuts::shortcuts(ui, page)?,
         PageId::Cloud => cloud::cloud(ui, page)?,
         PageId::Advanced => advanced::advanced(ui, page)?,
         PageId::About => about::about(ui, page)?,

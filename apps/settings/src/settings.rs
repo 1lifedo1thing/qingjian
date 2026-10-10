@@ -17,6 +17,7 @@ use crate::cloud::CloudTest;
 use crate::message::{FieldId, Message, Popup, SizeKind};
 use crate::page_id::PageId;
 use crate::previews::Previews;
+use crate::shortcut::Shortcut;
 use crate::update::UpdateCheck;
 use crate::view;
 
@@ -61,6 +62,9 @@ pub struct Settings {
 
     pub update: UpdateCheck,
 
+    /// 正在录的快捷键。
+    pub recording: Option<Shortcut>,
+
     waker: Option<Waker>,
 
     /// 「关于」页的数据来源展开着。
@@ -98,6 +102,7 @@ impl Settings {
             fields: HashMap::new(),
             cloud_test: CloudTest::default(),
             update: UpdateCheck::load(),
+            recording: None,
             waker: None,
         }
         .with_fields())
@@ -155,6 +160,40 @@ impl Settings {
             }
         }
         self.reset_field(id);
+    }
+
+    /// 快捷键页的各项（含翻页键、模式键）写回缺省；辅码触发键在「输入」页，不动。
+    fn reset_shortcuts(&mut self) {
+        let defaults = qingjian_platform::ShortcutConfig::default();
+        self.write(
+            "general",
+            "page_keys",
+            qingjian_platform::PAGE_KEY_OPTIONS[0],
+        );
+        self.write(
+            "shortcut",
+            "expression",
+            defaults.mode.expression.to_string(),
+        );
+        self.write("shortcut", "question", defaults.mode.question.to_string());
+        self.write("shortcut", "question_mark", defaults.mode.question_mark);
+        self.write("shortcut", "translation", defaults.translation.key());
+        self.write(
+            "shortcut",
+            "translation_second",
+            defaults.translation_second.key(),
+        );
+        self.write(
+            "shortcut",
+            "delete_candidate",
+            defaults.delete_candidate.key(),
+        );
+        self.write(
+            "shortcut",
+            "translate_selection",
+            defaults.translate_selection.key_string(),
+        );
+        self.recording = None;
     }
 
     /// 候选窗该用深色：按「外观」设置，跟随系统时看系统。
@@ -240,6 +279,30 @@ impl App for Settings {
                     self.commit(id);
                 }
                 self.page = page;
+                self.recording = None;
+            }
+            Message::Record(shortcut) => self.recording = Some(shortcut),
+            Message::StopRecording => self.recording = None,
+            Message::Recorded(shortcut, press) => match shortcut.accept(&press, &self.config) {
+                Ok(value) => {
+                    let (section, key) = shortcut.config_key();
+                    self.write(section, key, value);
+                    self.recording = None;
+                }
+                Err(reason) => self.notice = Some((shortcut.title(), reason)),
+            },
+            Message::ResetShortcuts => self.reset_shortcuts(),
+            Message::ModeKey(key, letter) => {
+                let mode = self.config.shortcut.mode.sanitized();
+                let (current, other, other_key) = if key == "expression" {
+                    (mode.expression, mode.question, "question")
+                } else {
+                    (mode.question, mode.expression, "expression")
+                };
+                if letter == other {
+                    self.write("shortcut", other_key, current.to_string());
+                }
+                self.write("shortcut", key, letter.to_string());
             }
             Message::Edit(id, edit) => {
                 if let Some(copied) = self
