@@ -15,10 +15,13 @@ pub(super) struct MeasureKey {
     italic: bool,
 
     family: FamilyId,
+
+    /// 折行宽度的位模式；不折行为 `None`。
+    width: Option<u32>,
 }
 
 impl MeasureKey {
-    pub(super) fn new(text: &str, style: &TextStyle) -> Self {
+    pub(super) fn new(text: &str, style: &TextStyle, width: Option<f32>) -> Self {
         Self {
             text: text.to_owned(),
             metrics: [
@@ -29,6 +32,7 @@ impl MeasureKey {
             weight: style.weight,
             italic: style.italic,
             family: style.family,
+            width: width.map(f32::to_bits),
         }
     }
 }

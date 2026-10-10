@@ -29,8 +29,8 @@ impl<M: Clone> Interaction<M> {
             .map(|&position| &self.elements[position])
             .find(|element| element.interact.takes_focus())
             .map(|element| element.key);
-        response.changed = self.pressed.is_some() || focused != self.focused || self.focus_visible;
-        self.focused = focused;
+        let moved = self.set_focus(focused, &mut response);
+        response.changed = self.pressed.is_some() || moved || self.focus_visible;
         self.focus_visible = false;
         response
     }

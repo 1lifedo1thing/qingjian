@@ -3,6 +3,8 @@
 
 mod runner;
 mod traits;
+mod waker;
 
 pub use runner::Runner;
 pub use traits::App;
+pub use waker::Waker;

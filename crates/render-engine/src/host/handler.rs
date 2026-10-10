@@ -7,15 +7,17 @@ use std::time::Instant;
 use softbuffer::{Context, Surface};
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
-use winit::event::{ElementState, MouseButton, WindowEvent};
+use winit::dpi::{PhysicalPosition, PhysicalSize};
+use winit::event::{ElementState, Ime, MouseButton, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Theme, Window, WindowId};
 
 use super::blit::blit;
+use super::clipboard::clipboard_text;
 use super::input::{key_code, modifiers, scroll};
 use super::{HostError, WindowOptions};
 use crate::app::{App, Runner};
-use crate::ui::{Event, KeyPress, Modifiers};
+use crate::ui::{Event, KeyCode, KeyPress, Modifiers, TextInput};
 
 pub(super) struct Handler<A: App> {
     runner: Runner<A>,
@@ -26,6 +28,9 @@ pub(super) struct Handler<A: App> {
     modifiers: Modifiers,
 
     window: Option<Host>,
+
+    /// 输入法开着（焦点在输入框里）时它的位置，与上次告诉系统的比，变了才再告诉。
+    ime: Option<(f32, f32, f32, f32)>,
 
     /// 中途出的错，事件循环退出后交给调用方。
     pub(super) error: Option<HostError>,
@@ -45,6 +50,7 @@ impl<A: App> Handler<A> {
             options,
             modifiers: Modifiers::default(),
             window: None,
+            ime: None,
             error: None,
         }
     }
@@ -114,6 +120,34 @@ impl<A: App> Handler<A> {
         Ok(painted.next_frame.is_some())
     }
 
+    /// 焦点进出输入框时开关输入法，输入法的候选窗跟着输入框走。
+    fn sync_ime(&mut self, window: &Window) {
+        let target = self.runner.interaction().text_target();
+        if target == self.ime {
+            return;
+        }
+        if target.is_some() != self.ime.is_some() {
+            window.set_ime_allowed(target.is_some());
+        }
+        if let Some((x, y, width, height)) = target {
+            window.set_ime_cursor_area(
+                PhysicalPosition::new(x as f64, y as f64),
+                PhysicalSize::new(width as f64, height as f64),
+            );
+        }
+        self.ime = target;
+    }
+
+    /// 交给交互层；之后按要不要退出、重画收尾。
+    fn dispatch(&mut self, event_loop: &ActiveEventLoop, window: &Window, input: &Event) {
+        let redraw = self.runner.handle(input);
+        if self.runner.quit_requested() {
+            event_loop.exit();
+        } else if redraw {
+            window.request_redraw();
+        }
+    }
+
     fn fail(&mut self, event_loop: &ActiveEventLoop, error: HostError) {
         tracing::error!(%error, "窗口宿主出错，退出");
         self.error = Some(error);
@@ -122,6 +156,14 @@ impl<A: App> Handler<A> {
 }
 
 impl<A: App> ApplicationHandler for Handler<A> {
+    fn user_event(&mut self, _: &ActiveEventLoop, (): ()) {
+        if self.runner.wake()
+            && let Some(host) = &self.window
+        {
+            host.window.request_redraw();
+        }
+    }
+
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_none()
             && let Err(error) = self.open(event_loop)
@@ -156,8 +198,11 @@ impl<A: App> ApplicationHandler for Handler<A> {
                     Ok(false) => {}
                     Err(error) => self.fail(event_loop, error),
                 }
+                self.sync_ime(&window);
                 return;
             }
+            WindowEvent::Ime(Ime::Preedit(text, _)) => Event::Text(TextInput::Preedit(text)),
+            WindowEvent::Ime(Ime::Commit(text)) => Event::Text(TextInput::Insert(text)),
             WindowEvent::ModifiersChanged(state) => {
                 self.modifiers = modifiers(state.state());
                 return;
@@ -180,18 +225,38 @@ impl<A: App> ApplicationHandler for Handler<A> {
                 Event::Scroll { dx, dy }
             }
             WindowEvent::KeyboardInput { event, .. } if event.state == ElementState::Pressed => {
-                let Some(key) = key_code(&event.logical_key) else {
+                let key = key_code(&event.logical_key);
+                let typing = self.runner.interaction().text_target().is_some();
+                // 粘贴由宿主读剪贴板，当作打了这些字
+                if typing
+                    && self.modifiers.command
+                    && key == Some(KeyCode::Character("v".to_owned()))
+                {
+                    if let Some(text) = clipboard_text() {
+                        self.dispatch(event_loop, &window, &Event::Text(TextInput::Insert(text)));
+                    }
                     return;
-                };
-                Event::Key(KeyPress::new(key, self.modifiers))
+                }
+                if let Some(key) = key {
+                    self.dispatch(
+                        event_loop,
+                        &window,
+                        &Event::Key(KeyPress::new(key, self.modifiers)),
+                    );
+                }
+                // 带 ⌘ / Ctrl 的是快捷键，不算打字；回车、退格这类控制字符也不算
+                let text = event
+                    .text
+                    .filter(|_| typing && !self.modifiers.command)
+                    .map(|text| text.chars().filter(|c| !c.is_control()).collect::<String>())
+                    .filter(|text| !text.is_empty());
+                match text {
+                    Some(text) => Event::Text(TextInput::Insert(text)),
+                    None => return,
+                }
             }
             _ => return,
         };
-        let redraw = self.runner.handle(&input);
-        if self.runner.quit_requested() {
-            event_loop.exit();
-        } else if redraw {
-            window.request_redraw();
-        }
+        self.dispatch(event_loop, &window, &input);
     }
 }

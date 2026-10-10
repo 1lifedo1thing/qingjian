@@ -1,17 +1,24 @@
-//! 一个元素怎么响应：点击产出的消息、按键处理、能不能拿焦点、是否禁用。
+//! 一个元素怎么响应：点击产出的消息、按键与文字输入的处理、失去焦点、能不能拿焦点、是否禁用。
 
 use taffy::NodeId;
 
-use super::event::KeyPress;
+use super::event::{KeyPress, TextInput};
 
 /// 按键处理：处理了就返回消息，没处理返回 `None` 交给上级。
 type KeyHandler<M> = Box<dyn Fn(&KeyPress) -> Option<M>>;
+
+type TextHandler<M> = Box<dyn Fn(&TextInput) -> Option<M>>;
 
 /// 什么都不设也有用：元素会记悬停状态。
 pub struct Interact<M> {
     pub(super) click: Option<M>,
 
     pub(super) key: Option<KeyHandler<M>>,
+
+    pub(super) text: Option<TextHandler<M>>,
+
+    /// 焦点离开它时的消息。
+    pub(super) blur: Option<M>,
 
     pub(super) focusable: bool,
 
@@ -32,6 +39,8 @@ impl<M> Interact<M> {
         Self {
             click: None,
             key: None,
+            text: None,
+            blur: None,
             focusable: false,
             disabled: false,
             scroll_content: None,
@@ -49,6 +58,24 @@ impl<M> Interact<M> {
     pub fn on_key(self, handler: impl Fn(&KeyPress) -> Option<M> + 'static) -> Self {
         Self {
             key: Some(Box::new(handler)),
+            ..self
+        }
+    }
+
+    /// 收文字（输入框）：拿着焦点时打的字、输入法的组字交给它。收文字的元素都能拿焦点；
+    /// 宿主据此打开输入法，并把输入法的候选窗放在它下面。
+    pub fn on_text(self, handler: impl Fn(&TextInput) -> Option<M> + 'static) -> Self {
+        Self {
+            text: Some(Box::new(handler)),
+            focusable: true,
+            ..self
+        }
+    }
+
+    /// 焦点离开它（点了别处、Tab 走了）时的消息；元素从树里消失时不发。
+    pub fn on_blur(self, message: M) -> Self {
+        Self {
+            blur: Some(message),
             ..self
         }
     }
@@ -81,5 +108,9 @@ impl<M> Interact<M> {
 
     pub(super) fn takes_focus(&self) -> bool {
         self.focusable && !self.disabled
+    }
+
+    pub(super) fn accepts_text(&self) -> bool {
+        self.text.is_some() && !self.disabled
     }
 }

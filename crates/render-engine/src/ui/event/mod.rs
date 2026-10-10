@@ -3,10 +3,12 @@
 mod key_code;
 mod key_press;
 mod modifiers;
+mod text_input;
 
 pub use key_code::KeyCode;
 pub use key_press::KeyPress;
 pub use modifiers::Modifiers;
+pub use text_input::TextInput;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Event {
@@ -24,6 +26,9 @@ pub enum Event {
     PointerUp,
 
     Key(KeyPress),
+
+    /// 打出来的文字与输入法的组字，只交给拿着焦点、收文字的元素。
+    Text(TextInput),
 
     /// 滚轮或触控板：滚动位置的增量（像素，向右、向下为正，即内容往左、往上走）。
     /// 宿主把行增量按行高换成像素；触控板的惯性阶段照样一个个送过来。

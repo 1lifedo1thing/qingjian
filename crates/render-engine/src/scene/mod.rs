@@ -121,6 +121,12 @@ impl Scene {
         Ok(node)
     }
 
+    /// 给已建好的 `parent` 末尾再加一个子节点（画在原有子节点上面）。
+    pub fn append(&mut self, parent: NodeId, child: NodeId) -> Result<(), RenderError> {
+        self.tree.add_child(parent, child)?;
+        Ok(())
+    }
+
     /// 节点连同子节点的不透明度。
     pub fn set_opacity(&mut self, node: NodeId, opacity: f32) {
         if let Some(context) = self.tree.get_node_context_mut(node) {
@@ -191,7 +197,28 @@ impl Scene {
                     inputs,
                     style,
                     |_, _| 0.0,
-                    |known, _available: Size<AvailableSpace>| match visual {
+                    |known, available: Size<AvailableSpace>| match visual {
+                        Some(SceneNode {
+                            visual:
+                                Visual::Text {
+                                    text: content,
+                                    style,
+                                },
+                            ..
+                        }) if style.wrap => {
+                            // 段落：最窄按一个字宽，最宽一行到底，给了宽度就按它折
+                            let width = known.width.or(match available.width {
+                                AvailableSpace::Definite(width) => Some(width),
+                                AvailableSpace::MinContent => Some(style.size),
+                                AvailableSpace::MaxContent => None,
+                            });
+                            let size = text.measure_within(content, style, width);
+                            measured.insert(node, size);
+                            Size {
+                                width: known.width.unwrap_or(size.width),
+                                height: known.height.unwrap_or(size.height),
+                            }
+                        }
                         Some(SceneNode {
                             visual:
                                 Visual::Text {

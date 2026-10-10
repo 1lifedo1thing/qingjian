@@ -32,6 +32,9 @@ pub struct TextStyle {
 
     /// 覆盖率 gamma：小于 1 把笔画加深，对齐 CoreText 的字体平滑。
     pub gamma: f32,
+
+    /// 按节点宽度折行（段落）；不折行时一行到底，节点宽度就是文字宽度。
+    pub wrap: bool,
 }
 
 impl TextStyle {
@@ -48,7 +51,12 @@ impl TextStyle {
             stroke: None,
             decoration: None,
             gamma,
+            wrap: false,
         }
+    }
+
+    pub fn wrapped(self) -> Self {
+        Self { wrap: true, ..self }
     }
 
     /// 宽度不大于 0 的描边当没有。

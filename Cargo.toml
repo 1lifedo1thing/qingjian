@@ -26,6 +26,8 @@ taffy = { version = "0.14.0", default-features = false, features = ["std", "taff
 # 窗口宿主：开窗收事件 + 把位图贴到窗口
 winit = "0.30.13"
 softbuffer = "0.4.8"
+# 输入框的复制粘贴；不要图片剪贴板，免得拉进 image
+arboard = { version = "3.6.1", default-features = false }
 
 # cosmic-text 加了 opsz 光学字号支持（FontSystem::set_optical_size），补丁在 fork 的 qingjian-opsz 分支，基于 0.19.0；
 # 上游收了就删掉这段回 crates.io

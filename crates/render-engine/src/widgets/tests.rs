@@ -4,7 +4,7 @@ use super::*;
 use crate::fonts::FontLibrary;
 use crate::scene::{Scene, Visual};
 use crate::text::TextPainter;
-use crate::ui::{Event, Interaction, Key, KeyCode, KeyPress, Modifiers, Ui};
+use crate::ui::{Event, Interaction, Key, KeyCode, KeyPress, Modifiers, TextInput, Ui};
 
 #[derive(Debug, Clone, PartialEq)]
 enum Message {
@@ -111,4 +111,108 @@ fn stepper_at_limit_ignores_increase() {
         press(&mut interaction, KeyCode::ArrowDown),
         vec![Message::Down]
     );
+}
+
+#[test]
+fn paragraph_wraps_to_the_column_width() {
+    let interaction = Interaction::<Message>::new();
+    let mut text = TextPainter::new(FontLibrary::system("en").unwrap());
+    let theme = WidgetTheme::new(WidgetColors::LIGHT, 1.0);
+    let mut ui = Ui::new(&interaction);
+    let words = "word ".repeat(40);
+    let note = paragraph(&mut ui, &theme, &words, None).unwrap();
+    let root = ui
+        .scene()
+        .node(
+            Style {
+                size: taffy::Size {
+                    width: taffy::Dimension::length(120.0),
+                    height: taffy::Dimension::auto(),
+                },
+                flex_direction: FlexDirection::Column,
+                ..Style::default()
+            },
+            Visual::Group,
+            &[note],
+        )
+        .unwrap();
+    let (mut scene, _) = ui.finish();
+    layout(&mut scene, root, &mut text);
+    let (_, _, width, height) = scene.rect_in(note, root).unwrap();
+    let line = text.measure(
+        "word",
+        &theme.text(theme.small, 400, theme.colors.secondary),
+    );
+    assert!(width <= 120.0);
+    assert!(height > line.height * 3.0, "{height}");
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum Field {
+    Edit(Edit),
+    Commit,
+}
+
+/// 一个输入框加一个开关；返回布好局、认回交互的一帧。
+fn field_frame(interaction: &mut Interaction<Field>, text: &mut TextPainter, edit: &TextEdit) {
+    let theme = WidgetTheme::new(WidgetColors::LIGHT, 1.0);
+    let mut ui = Ui::new(interaction);
+    let field = TextField::new(edit)
+        .build(&mut ui, &theme, "field", Field::Edit, Field::Commit, None)
+        .unwrap();
+    let switch = Switch::new(false)
+        .build(&mut ui, &theme, "switch", Field::Commit)
+        .unwrap();
+    let root = ui
+        .scene()
+        .node(
+            Style {
+                flex_direction: FlexDirection::Row,
+                ..Style::default()
+            },
+            Visual::Group,
+            &[field, switch],
+        )
+        .unwrap();
+    let (mut scene, elements) = ui.finish();
+    layout(&mut scene, root, text);
+    interaction.attach(&scene, root, elements).unwrap();
+}
+
+#[test]
+fn text_goes_to_the_focused_field_and_leaving_commits() {
+    let mut interaction = Interaction::new();
+    let mut text = TextPainter::new(FontLibrary::system("en").unwrap());
+    let mut edit = TextEdit::new("");
+    field_frame(&mut interaction, &mut text, &edit);
+    let typed = Event::Text(TextInput::Insert("a".to_owned()));
+    assert!(
+        interaction.handle(&typed).messages.is_empty(),
+        "没焦点时不收字"
+    );
+    assert!(interaction.text_target().is_none());
+
+    let (x, y, width, height) = interaction.rect(Key::ROOT.child("field")).unwrap();
+    interaction.handle(&Event::PointerMoved {
+        x: x + width / 2.0,
+        y: y + height / 2.0,
+    });
+    interaction.handle(&Event::PointerDown);
+    interaction.handle(&Event::PointerUp);
+    assert!(interaction.text_target().is_some());
+    for message in interaction.handle(&typed).messages {
+        let Field::Edit(change) = message else {
+            panic!("打字只该产出编辑");
+        };
+        edit.apply(&change);
+    }
+    assert_eq!(edit.text(), "a");
+    field_frame(&mut interaction, &mut text, &edit);
+
+    let left = interaction.handle(&Event::Key(KeyPress::new(
+        KeyCode::Tab,
+        Modifiers::default(),
+    )));
+    assert_eq!(left.messages, vec![Field::Commit]);
+    assert!(interaction.text_target().is_none());
 }

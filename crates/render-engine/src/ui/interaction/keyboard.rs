@@ -1,13 +1,14 @@
 //! 键盘事件：Tab / Shift+Tab 按画序移焦点；其余按键先给焦点元素、再往上冒，没人处理时空格 / 回车触发焦点元素的点击。
+//! 文字输入只给拿着焦点、收文字的元素，不往上冒。
 
 use super::Interaction;
-use crate::ui::{KeyCode, KeyPress, Response};
+use crate::ui::{KeyCode, KeyPress, Response, TextInput};
 
 impl<M: Clone> Interaction<M> {
     pub(super) fn key(&mut self, press: &KeyPress) -> Response<M> {
         let mut response = Response::new();
         if press.key == KeyCode::Tab && !press.modifiers.command && !press.modifiers.alt {
-            response.changed = self.move_focus(!press.modifiers.shift);
+            response.changed = self.move_focus(!press.modifiers.shift, &mut response);
             return response;
         }
         let focused = self.focused.and_then(|key| self.index.get(&key).copied());
@@ -40,8 +41,22 @@ impl<M: Clone> Interaction<M> {
         response
     }
 
+    pub(super) fn text(&mut self, input: &TextInput) -> Response<M> {
+        let mut response = Response::new();
+        if let Some(message) = self
+            .focused
+            .and_then(|key| self.element(key))
+            .filter(|element| element.interact.accepts_text())
+            .and_then(|element| element.interact.text.as_ref())
+            .and_then(|handler| handler(input))
+        {
+            response.messages.push(message);
+        }
+        response
+    }
+
     /// 焦点移到下一个（或上一个）能拿焦点的元素，到头绕回；返回是否变了。
-    fn move_focus(&mut self, forward: bool) -> bool {
+    fn move_focus(&mut self, forward: bool, response: &mut Response<M>) -> bool {
         let candidates: Vec<usize> = (0..self.elements.len())
             .filter(|&position| self.elements[position].interact.takes_focus())
             .collect();
@@ -63,8 +78,8 @@ impl<M: Clone> Interaction<M> {
             (Some(at), false) => (at + candidates.len() - 1) % candidates.len(),
         };
         let key = self.elements[candidates[next]].key;
-        let changed = self.focused != Some(key) || !self.focus_visible;
-        self.focused = Some(key);
+        let moved = self.set_focus(Some(key), response);
+        let changed = moved || !self.focus_visible;
         self.focus_visible = true;
         changed
     }

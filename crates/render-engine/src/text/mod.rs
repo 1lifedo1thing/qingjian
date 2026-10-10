@@ -138,13 +138,23 @@ impl TextPainter {
         self.measured.clear();
     }
 
-    /// 一段文字的宽高（像素）。高度就是行高。
+    /// 一段文字的宽高（像素），一行到底。高度就是行高。
     pub fn measure(&mut self, text: &str, style: &TextStyle) -> TextSize {
-        let key = MeasureKey::new(text, style);
+        self.measure_within(text, style, None)
+    }
+
+    /// 按 `width` 折行后的宽高（像素）：宽是最长那行，高是行数乘行高。`None` 不折行。
+    pub fn measure_within(
+        &mut self,
+        text: &str,
+        style: &TextStyle,
+        width: Option<f32>,
+    ) -> TextSize {
+        let key = MeasureKey::new(text, style, width);
         if let Some(size) = self.measured.get(&key) {
             return *size;
         }
-        let size = self.measure_uncached(text, style);
+        let size = self.measure_uncached(text, style, width);
         if self.measured.len() >= MEASURED_LIMIT {
             self.measured.clear();
         }
@@ -152,11 +162,13 @@ impl TextPainter {
         size
     }
 
-    fn measure_uncached(&mut self, text: &str, style: &TextStyle) -> TextSize {
-        self.shape(text, style);
+    fn measure_uncached(&mut self, text: &str, style: &TextStyle, wrap: Option<f32>) -> TextSize {
+        self.shape(text, style, wrap);
         let mut width = 0.0_f32;
         let mut baseline = None;
+        let mut lines = 0_u16;
         for run in self.buffer.layout_runs() {
+            lines += 1;
             baseline.get_or_insert(run.line_y.round());
             let tracked: f32 = run
                 .glyphs
@@ -169,12 +181,13 @@ impl TextPainter {
         }
         TextSize {
             width,
-            height: style.line_height,
+            // 不折行的文字按一行算高（换行符也不撑高，与以前一致）
+            height: style.line_height * f32::from(if style.wrap { lines.max(1) } else { 1 }),
             baseline: baseline.unwrap_or(0.0),
         }
     }
 
-    /// 把文字画到 `(x, y)`，`y` 是行框顶边。返回宽度。
+    /// 把文字画到 `(x, y)`，`y` 是行框顶边，一行到底。返回宽度。
     pub fn draw(
         &mut self,
         canvas: &mut Canvas,
@@ -183,7 +196,19 @@ impl TextPainter {
         x: f32,
         y: f32,
     ) -> f32 {
-        self.shape(text, style);
+        self.draw_within(canvas, text, style, (x, y), None)
+    }
+
+    /// 同 [`Self::draw`]，按 `width` 折行（`None` 不折）。
+    pub fn draw_within(
+        &mut self,
+        canvas: &mut Canvas,
+        text: &str,
+        style: &TextStyle,
+        (x, y): (f32, f32),
+        width: Option<f32>,
+    ) -> f32 {
+        self.shape(text, style, width);
         if let Some((stroke_width, stroke_color)) = style.stroke {
             self.draw_stroke(canvas, style, x, y, stroke_width, stroke_color);
         }
@@ -287,7 +312,7 @@ impl TextPainter {
 
     /// 每个字形用的字族名（相邻相同的合并），拿来核对中日字形与 emoji 回退到了哪家字体。
     pub fn trace_families(&mut self, text: &str, style: &TextStyle) -> Vec<String> {
-        self.shape(text, style);
+        self.shape(text, style, None);
         let mut names: Vec<String> = Vec::new();
         for run in self.buffer.layout_runs() {
             for glyph in run.glyphs {
@@ -305,7 +330,7 @@ impl TextPainter {
         names
     }
 
-    fn shape(&mut self, text: &str, style: &TextStyle) {
+    fn shape(&mut self, text: &str, style: &TextStyle, width: Option<f32>) {
         let family = match self.resolved.get(usize::from(style.family.0)) {
             Some(Some(name)) => Family::Name(name),
             _ => UI_FAMILY,
@@ -321,7 +346,7 @@ impl TextPainter {
             .color(style.color.to_cosmic());
         self.buffer
             .set_metrics(Metrics::new(style.size, style.line_height));
-        self.buffer.set_size(None, None);
+        self.buffer.set_size(width, None);
         self.buffer.set_text(text, &attrs, Shaping::Advanced, None);
         self.buffer.shape_until_scroll(&mut self.font_system, false);
     }
@@ -342,12 +367,16 @@ fn load_font(font_system: &mut FontSystem, path: &Path) -> bool {
 }
 
 /// 某张字体在这个字号下每个字形要加的间距（像素）；第一次用到时解析它的 `trak` 表。
+/// 折行的段落不加：cosmic-text 折行时不知道这份间距，加了会超出折行宽度。
 fn tracking_px(
     font_system: &FontSystem,
     cache: &mut HashMap<ID, Option<Trak>>,
     font_id: ID,
     style: &TextStyle,
 ) -> f32 {
+    if style.wrap {
+        return 0.0;
+    }
     let trak = cache.entry(font_id).or_insert_with(|| {
         font_system
             .db()

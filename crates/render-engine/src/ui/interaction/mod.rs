@@ -172,8 +172,36 @@ impl<M> Interaction<M> {
             Event::PointerDown => self.pointer_down(),
             Event::PointerUp => self.pointer_up(),
             Event::Key(press) => self.key(press),
+            Event::Text(input) => self.text(input),
             Event::Scroll { dx, dy } => self.scroll(*dx, *dy),
         }
+    }
+
+    /// 拿着焦点、收文字的元素在根坐标里的矩形：宿主据此开关输入法、摆输入法的候选窗。
+    pub fn text_target(&self) -> Option<(f32, f32, f32, f32)> {
+        self.focused
+            .and_then(|key| self.element(key))
+            .filter(|element| element.interact.accepts_text())
+            .map(Element::rect)
+    }
+
+    /// 换焦点；离开的元素有失焦消息就放进 `response`。返回焦点是否变了。
+    fn set_focus(&mut self, focused: Option<Key>, response: &mut Response<M>) -> bool
+    where
+        M: Clone,
+    {
+        if focused == self.focused {
+            return false;
+        }
+        if let Some(message) = self
+            .focused
+            .and_then(|key| self.element(key))
+            .and_then(|element| element.interact.blur.clone())
+        {
+            response.messages.push(message);
+        }
+        self.focused = focused;
+        true
     }
 
     /// 按指针位置重新算悬停路径，返回是否变了。

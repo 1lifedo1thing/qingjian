@@ -21,7 +21,7 @@ mod ui;
 mod widgets;
 
 pub use animation::{Easing, Keyframe, Keyframes};
-pub use app::{App, Runner};
+pub use app::{App, Runner, Waker};
 pub use canvas::Canvas;
 pub use color::Color;
 pub use error::RenderError;
@@ -30,7 +30,7 @@ pub use error::RenderError;
 pub use fonts::directwrite as system_fonts;
 pub use fonts::{FontLibrary, UiFont};
 #[cfg(feature = "host")]
-pub use host::{HostError, TITLEBAR, WindowOptions, run as run_window};
+pub use host::{HostError, TITLEBAR, WindowOptions, run as run_window, set_clipboard};
 pub use scene::{BoxPaint, Effect, EffectKind, Fill, Icon, Scene, Visual};
 pub use stage::{Painted, Stage};
 pub use svg_image::SvgImage;
@@ -38,11 +38,12 @@ pub use text::font::{FamilyId, FamilyList, FamilyTable, FontSpec, FontWeight};
 pub use text::{Decoration, TextPainter, TextSize, TextStyle};
 pub use ui::{
     ElementState, Elements, Event, Interact, Interaction, Key, KeyCode, KeyPress, Modifiers,
-    Response, ScrollExtent, Ui,
+    Response, ScrollExtent, TextInput, Ui,
 };
 pub use widgets::{
-    Button, Checkbox, Menu, NavItem, ScrollArea, SearchField, Segmented, Select, SettingRow,
-    Stepper, Switch, WidgetColors, WidgetTheme, group, section_title,
+    Button, Checkbox, Edit, Menu, NavItem, ScrollArea, SearchField, Segmented, Select, SettingRow,
+    Stepper, Switch, TextEdit, TextField, WidgetColors, WidgetTheme, group, info, paragraph,
+    section_title,
 };
 
 /// 使用方建树用的布局类型、自己画图标用的路径与混合模式，与这里是同一个 taffy、tiny-skia。

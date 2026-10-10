@@ -20,6 +20,8 @@ pub(super) fn key_code(key: &Key) -> Option<KeyCode> {
         Key::Named(NamedKey::ArrowDown) => KeyCode::ArrowDown,
         Key::Named(NamedKey::Home) => KeyCode::Home,
         Key::Named(NamedKey::End) => KeyCode::End,
+        Key::Named(NamedKey::Backspace) => KeyCode::Backspace,
+        Key::Named(NamedKey::Delete) => KeyCode::Delete,
         Key::Character(text) => KeyCode::Character(text.to_string()),
         _ => return None,
     })

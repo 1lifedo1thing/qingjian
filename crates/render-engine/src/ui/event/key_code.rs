@@ -12,6 +12,8 @@ pub enum KeyCode {
     ArrowDown,
     Home,
     End,
+    Backspace,
+    Delete,
 
     /// 产生字符的键（已按修饰键与键盘布局算好）。
     Character(String),

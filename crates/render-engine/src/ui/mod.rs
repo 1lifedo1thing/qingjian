@@ -20,7 +20,7 @@ mod state;
 
 pub use builder::Ui;
 pub use elements::Elements;
-pub use event::{Event, KeyCode, KeyPress, Modifiers};
+pub use event::{Event, KeyCode, KeyPress, Modifiers, TextInput};
 pub use interact::Interact;
 pub use interaction::Interaction;
 pub use key::Key;

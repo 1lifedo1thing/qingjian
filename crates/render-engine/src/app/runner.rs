@@ -71,6 +71,13 @@ impl<A: App> Runner<A> {
         self.last_build
     }
 
+    /// 后台叫醒了窗口，返回要不要重画。
+    pub fn wake(&mut self) -> bool {
+        let rebuild = self.app.wake();
+        self.stale |= rebuild;
+        rebuild
+    }
+
     /// 处理一个输入事件，返回要不要重画。
     pub fn handle(&mut self, event: &Event) -> bool {
         let response = self.interaction.handle(event);
@@ -111,6 +118,7 @@ impl<A: App> Runner<A> {
         let (scene, root, content) = loop {
             let mut ui = Ui::new(&self.interaction);
             let root = self.app.view(&mut ui, scale, size)?;
+            ui.attach_overlays(root)?;
             let (mut scene, elements) = ui.finish();
             let content = scene.layout(root, self.stage.text())?;
             attempts += 1;

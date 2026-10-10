@@ -2,6 +2,7 @@
 
 use taffy::NodeId;
 
+use super::Waker;
 use crate::error::RenderError;
 use crate::text::TextPainter;
 use crate::ui::Ui;
@@ -24,6 +25,16 @@ pub trait App {
     /// 第一帧之前调一次：加载字体、换字族表这类文字画笔的设置。
     fn setup(&mut self, text: &mut TextPainter) {
         let _ = text;
+    }
+
+    /// 开窗后调一次，交给应用一个能从别的线程叫醒窗口的 [`Waker`]；不开窗口时不调。
+    fn set_waker(&mut self, waker: Waker) {
+        let _ = waker;
+    }
+
+    /// 有人调了 [`Waker::wake`]：看看后台的结果，返回要不要重建界面。
+    fn wake(&mut self) -> bool {
+        false
     }
 
     /// 系统的深浅色变了（开窗时也调一次）。

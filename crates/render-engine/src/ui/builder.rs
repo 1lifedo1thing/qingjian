@@ -18,6 +18,9 @@ pub struct Ui<'a, M> {
     scope: Key,
 
     elements: Vec<(Key, NodeId, Interact<M>)>,
+
+    /// 浮在整窗最上面的节点（悬停说明），见 [`Self::overlay`]。
+    overlays: Vec<NodeId>,
 }
 
 impl<'a, M> Ui<'a, M> {
@@ -27,6 +30,7 @@ impl<'a, M> Ui<'a, M> {
             interaction,
             scope: Key::ROOT,
             elements: Vec::new(),
+            overlays: Vec::new(),
         }
     }
 
@@ -75,6 +79,19 @@ impl<'a, M> Ui<'a, M> {
     pub fn transition(&mut self, node: NodeId, key: Key, duration: Duration, easing: Easing) {
         self.scene
             .set_transition(node, key.transition_name(), duration, easing);
+    }
+
+    /// 浮层：建好后挂到根节点最后，盖在所有东西上面、不被滚动区裁掉。节点要自己绝对定位（根坐标）。
+    pub fn overlay(&mut self, node: NodeId) {
+        self.overlays.push(node);
+    }
+
+    /// 把浮层挂到 `root` 上；[`crate::Runner`] 建完树后调。
+    pub fn attach_overlays(&mut self, root: NodeId) -> Result<(), crate::error::RenderError> {
+        for node in std::mem::take(&mut self.overlays) {
+            self.scene.append(root, node)?;
+        }
+        Ok(())
     }
 
     pub fn finish(self) -> (Scene, Elements<M>) {

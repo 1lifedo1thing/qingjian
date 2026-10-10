@@ -12,14 +12,16 @@ pub(in crate::scene) fn draw_visual(
     visual: &Visual,
     rect: (f32, f32, f32, f32),
 ) {
-    let (x, y, _, height) = rect;
+    let (x, y, width, height) = rect;
     match visual {
         Visual::Box(paint) => draw_box(canvas, rect, paint),
         Visual::Text {
             text: content,
             style,
         } => {
-            text.draw(canvas, content, style, x, y);
+            // 量出来的宽就是最长那行，原样再折一次可能因舍入多折一行，放宽半个像素
+            let wrap = style.wrap.then_some(width + 0.5);
+            text.draw_within(canvas, content, style, (x, y), wrap);
         }
         Visual::Icon { icon, size, color } => {
             let top = y + (height - size) / 2.0;

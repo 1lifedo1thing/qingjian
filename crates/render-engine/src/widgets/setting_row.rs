@@ -1,9 +1,10 @@
-//! 一行设置：左边标题（可带一行说明），右边控件，控件下面还能挂附加项（勾选框、链接）。
+//! 一行设置：左边标题（可带一行说明、一个悬停说明的 ⓘ），右边控件，控件下面还能挂附加项（勾选框、链接）。
 //! 控件很宽的（主题卡片）用 [`SettingRow::stacked`] 放到标题下面。
 
 use taffy::{AlignItems, JustifyContent, NodeId, Style};
 
 use super::WidgetTheme;
+use super::info::info;
 use super::parts::{column, label, padding, row};
 use crate::error::RenderError;
 use crate::scene::Visual;
@@ -13,6 +14,8 @@ pub struct SettingRow<'a> {
     title: &'a str,
 
     detail: Option<&'a str>,
+
+    info: Option<&'a str>,
 
     control: Option<NodeId>,
 
@@ -26,6 +29,7 @@ impl<'a> SettingRow<'a> {
         Self {
             title,
             detail: None,
+            info: None,
             control: None,
             below: Vec::new(),
             stacked: false,
@@ -36,6 +40,14 @@ impl<'a> SettingRow<'a> {
     pub fn detail(self, detail: &'a str) -> Self {
         Self {
             detail: Some(detail),
+            ..self
+        }
+    }
+
+    /// 标题右边的 ⓘ，悬停时浮出这段说明。
+    pub fn info(self, text: &'a str) -> Self {
+        Self {
+            info: Some(text),
             ..self
         }
     }
@@ -63,14 +75,19 @@ impl<'a> SettingRow<'a> {
 
     pub fn build<M>(self, ui: &mut Ui<M>, theme: &WidgetTheme) -> Result<NodeId, RenderError> {
         let colors = &theme.colors;
-        let mut texts = vec![label(
-            ui,
-            theme,
-            self.title,
-            theme.font.size,
-            500,
-            colors.text,
-        )?];
+        let mut title = label(ui, theme, self.title, theme.font.size, 500, colors.text)?;
+        if let Some(text) = self.info {
+            let mark = info(ui, theme, ("info", self.title), text)?;
+            title = ui.scene().node(
+                Style {
+                    align_items: Some(AlignItems::CENTER),
+                    ..row(theme, 6.0)
+                },
+                Visual::Group,
+                &[title, mark],
+            )?;
+        }
+        let mut texts = vec![title];
         if let Some(detail) = self.detail {
             texts.push(label(
                 ui,
