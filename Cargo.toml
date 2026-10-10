@@ -23,6 +23,9 @@ cosmic-text = { version = "0.19.0", default-features = false, features = ["std",
 zeno = { version = "0.3.3", default-features = false }
 # 场景图的布局：只要 flexbox 与 grid，不要 block / float
 taffy = { version = "0.14.0", default-features = false, features = ["std", "taffy_tree", "flexbox", "grid"] }
+# 窗口宿主：开窗收事件 + 把位图贴到窗口
+winit = "0.30.13"
+softbuffer = "0.4.8"
 
 # cosmic-text 加了 opsz 光学字号支持（FontSystem::set_optical_size），补丁在 fork 的 qingjian-opsz 分支，基于 0.19.0；
 # 上游收了就删掉这段回 crates.io

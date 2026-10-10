@@ -25,6 +25,8 @@ windows = { version = "0.62.2", features = ["Win32_Graphics_DirectWrite"] }
 
 [dev-dependencies]
 serde_json.workspace = true
+winit.workspace = true
+softbuffer.workspace = true
 
 [lints]
 workspace = true
