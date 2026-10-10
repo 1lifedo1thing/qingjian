@@ -1,4 +1,4 @@
-//! 出一帧：建树 → 布局 → 交给交互层 → 栅格。窗口与截图两条路共用。
+//! 出一帧：建树 → 布局 → 交给交互层 → 交给舞台画（与上一帧配对过渡）。窗口与截图两条路共用。
 
 use std::time::{Duration, Instant};
 
@@ -7,13 +7,11 @@ use render_engine::{Interaction, Painted, RenderError, Stage, Ui};
 use crate::demo::{Demo, Message};
 use crate::page;
 
-/// 画好的一帧与建树（含布局）、栅格各花了多久。
+/// 画好的一帧与建树（含布局）花了多久。
 pub struct Frame {
     pub painted: Painted,
 
     pub build: Duration,
-
-    pub raster: Duration,
 }
 
 pub fn render(
@@ -37,10 +35,11 @@ pub fn render(
         }
     };
     let built = Instant::now();
-    let painted = stage.rasterize(&scene, root, content, scale)?;
+    // 窗口大小变了位置不可比，不过渡
+    let compat = (u64::from(size.0) << 32) | u64::from(size.1);
+    let painted = stage.present(scene, root, content, compat, scale, Instant::now())?;
     Ok(Frame {
         painted,
         build: built - start,
-        raster: built.elapsed(),
     })
 }

@@ -6,12 +6,25 @@ use render_engine::taffy::{
     AlignItems, Dimension, FlexDirection, JustifyContent, LengthPercentage, LengthPercentageAuto,
     NodeId, Position, Rect, Size, Style,
 };
+use std::time::Duration;
+
 use render_engine::{
-    BoxPaint, Color, Effect, EffectKind, ElementState, Fill, FontSpec, FontWeight, Interact,
-    KeyCode, RenderError, TextStyle, Ui, Visual,
+    BoxPaint, Color, Easing, Effect, EffectKind, ElementState, Fill, FontSpec, FontWeight,
+    Interact, KeyCode, RenderError, TextStyle, Ui, Visual,
 };
 
 use crate::demo::{Demo, GROUPS, Message, PAGES, Row};
+
+/// 窗口顶上让给系统标题栏按钮的高度（点）：macOS 内容铺到标题栏下面，侧栏要躲开红绿灯。
+const TITLEBAR: f32 = if cfg!(target_os = "macos") { 28.0 } else { 8.0 };
+
+/// 悬停、按下这类颜色变化。
+const HOVER: Duration = Duration::from_millis(120);
+
+/// 开关拨过去：旋钮略冲过头再回来。
+const FLIP: Duration = Duration::from_millis(240);
+
+const FLIP_EASING: Easing = Easing::Bezier([0.3, 1.25, 0.5, 1.0]);
 
 pub struct Palette {
     window: Color,
@@ -210,7 +223,10 @@ impl Page<'_> {
                 flex_shrink: 0.0,
                 flex_direction: FlexDirection::Column,
                 gap: self.gap(2.0),
-                padding: self.padding(16.0, 10.0),
+                padding: Rect {
+                    top: LengthPercentage::length(self.px(TITLEBAR + 8.0)),
+                    ..self.padding(16.0, 10.0)
+                },
                 ..Style::default()
             },
             Visual::solid(self.palette.sidebar, 0.0),
@@ -250,6 +266,7 @@ impl Page<'_> {
             }),
             &[label],
         )?;
+        ui.transition(node, key, HOVER, Easing::Ease);
         ui.interact(
             node,
             key,
@@ -399,6 +416,7 @@ impl Page<'_> {
             Visual::solid(self.palette.knob, knob_h / 2.0),
             &[],
         )?;
+        ui.transition(knob, key.child("knob"), FLIP, FLIP_EASING);
         ui.scene().set_effects(
             knob,
             vec![Effect {
@@ -450,6 +468,7 @@ impl Page<'_> {
             Visual::solid(track, track_h / 2.0),
             &children,
         )?;
+        ui.transition(node, key, FLIP, Easing::Ease);
         ui.interact(
             node,
             key,
@@ -489,6 +508,7 @@ impl Page<'_> {
             }),
             &[text],
         )?;
+        ui.transition(node, key, HOVER, Easing::Ease);
         ui.interact(node, key, Interact::new().on_click(message).focusable());
         Ok(node)
     }

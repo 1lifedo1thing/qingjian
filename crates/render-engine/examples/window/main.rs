@@ -5,6 +5,7 @@
 //! - `cargo run --release --example window -- --png <目录>`：不开窗口，按脚本发事件，每步存一张截图，外加一张总览 `sheet.png`。
 
 mod demo;
+mod film;
 mod frame;
 mod page;
 mod snapshot;
@@ -29,7 +30,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args().skip(1);
     if args.next().as_deref() == Some("--png") {
         let directory = args.next().map(PathBuf::from).ok_or("--png 后面要给目录")?;
-        return snapshot::run(&directory);
+        snapshot::run(&directory)?;
+        return film::run(&directory);
     }
     let library = FontLibrary::system("zh-CN")?;
     let event_loop = EventLoop::new()?;
@@ -38,6 +40,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         interaction: Interaction::new(),
         demo: Demo::new(false),
         modifiers: Modifiers::default(),
+        stale: true,
         window: None,
     };
     event_loop.run_app(&mut app)?;
@@ -53,6 +56,9 @@ struct App {
 
     /// 最近一次的修饰键，按键事件本身不带。
     modifiers: Modifiers,
+
+    /// 状态变了、下次重画要重建树；否则重画只推进在播的动画。
+    stale: bool,
 
     window: Option<Host>,
 }
@@ -73,6 +79,15 @@ impl ApplicationHandler for App {
             .with_title("render-engine")
             .with_inner_size(LogicalSize::new(780.0, 660.0))
             .with_min_inner_size(LogicalSize::new(480.0, 320.0));
+        // macOS：保留系统的红绿灯，标题栏透明、内容铺到窗口顶上（同系统设置）；拖动、缩放仍是系统的
+        #[cfg(target_os = "macos")]
+        let attributes = {
+            use winit::platform::macos::WindowAttributesExtMacOS;
+            attributes
+                .with_titlebar_transparent(true)
+                .with_title_hidden(true)
+                .with_fullsize_content_view(true)
+        };
         let window = match event_loop.create_window(attributes) {
             Ok(window) => Arc::new(window),
             Err(error) => {
@@ -105,18 +120,29 @@ impl ApplicationHandler for App {
                 return;
             }
             WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } => {
+                self.stale = true;
                 host.window.request_redraw();
                 return;
             }
             WindowEvent::ThemeChanged(theme) => {
                 self.demo.dark = theme == Theme::Dark;
+                self.stale = true;
                 host.window.request_redraw();
                 return;
             }
             WindowEvent::RedrawRequested => {
-                if let Err(error) = redraw(host, &mut self.stage, &mut self.interaction, &self.demo)
-                {
-                    eprintln!("重画失败：{error}");
+                let stale = std::mem::take(&mut self.stale);
+                match redraw(
+                    host,
+                    &mut self.stage,
+                    &mut self.interaction,
+                    &self.demo,
+                    stale,
+                ) {
+                    // 还有动画在播：按显示器的刷新节奏接着要帧
+                    Ok(true) => host.window.request_redraw(),
+                    Ok(false) => {}
+                    Err(error) => eprintln!("重画失败：{error}"),
                 }
                 return;
             }
@@ -163,6 +189,7 @@ impl ApplicationHandler for App {
             }
         }
         if rebuild {
+            self.stale = true;
             host.window.request_redraw();
         }
     }
@@ -185,24 +212,33 @@ fn key_code(key: &Key) -> Option<KeyCode> {
     })
 }
 
+/// 重画一帧，返回是否还有动画要接着画。`stale` 时重建树，否则只推进在播的过渡。
 fn redraw(
     host: &mut Host,
     stage: &mut Stage,
     interaction: &mut Interaction<Message>,
     demo: &Demo,
-) -> Result<(), Box<dyn std::error::Error>> {
+    stale: bool,
+) -> Result<bool, Box<dyn std::error::Error>> {
     let size = host.window.inner_size();
     let (Some(width), Some(height)) = (NonZeroU32::new(size.width), NonZeroU32::new(size.height))
     else {
-        return Ok(());
+        return Ok(false);
     };
     let scale = host.window.scale_factor() as f32;
-    let frame = frame::render(stage, interaction, demo, scale, (width.get(), height.get()))?;
-
     let start = Instant::now();
+    let (painted, build) = if stale {
+        let frame = frame::render(stage, interaction, demo, scale, (width.get(), height.get()))?;
+        (frame.painted, Some(frame.build))
+    } else {
+        match stage.tick()? {
+            Some(painted) => (painted, None),
+            None => return Ok(false),
+        }
+    };
+    let painted_at = Instant::now();
     host.surface.resize(width, height)?;
     let mut buffer = host.surface.buffer_mut()?;
-    let painted = &frame.painted;
     blit(
         &painted.pixmap,
         (painted.content_x, painted.content_y),
@@ -211,16 +247,19 @@ fn redraw(
         height.get(),
     );
     buffer.present()?;
-    let shown = start.elapsed();
+    let shown = painted_at.elapsed();
 
+    let kind = match build {
+        Some(build) => format!("重建（建树 {:.2} ms）", ms(build)),
+        None => "动画帧".to_owned(),
+    };
     println!(
-        "{width}×{height} @{scale}：建树 {:.2} ms，栅格 {:.2} ms，贴图 {:.2} ms，共 {:.2} ms",
-        ms(frame.build),
-        ms(frame.raster),
+        "{width}×{height} @{scale} {kind}：出图 {:.2} ms，贴图 {:.2} ms，共 {:.2} ms",
+        ms(painted_at - start),
         ms(shown),
-        ms(frame.build + frame.raster + shown),
+        ms(start.elapsed()),
     );
-    Ok(())
+    Ok(painted.next_frame.is_some())
 }
 
 /// 位图里内容区左上角对齐窗口左上角拷过去；softbuffer 每像素是 `0x00RRGGBB`。

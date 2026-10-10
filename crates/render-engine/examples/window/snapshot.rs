@@ -31,6 +31,8 @@ enum Step {
 pub fn run(directory: &Path) -> Result<(), Box<dyn std::error::Error>> {
     std::fs::create_dir_all(directory)?;
     let mut stage = Stage::new(FontLibrary::system("zh-CN")?);
+    // 截的是每步的终态
+    stage.set_animations(false);
     let mut interaction = Interaction::new();
     let mut demo = Demo::new(false);
     let sidebar = |index: usize| Key::ROOT.child("sidebar").child(index);
