@@ -3,7 +3,7 @@
 use serde::Deserialize;
 
 use super::parse_hex;
-use crate::color::Color;
+use render_engine::Color;
 
 #[derive(Debug, Clone, Copy, Deserialize)]
 #[serde(try_from = "String")]

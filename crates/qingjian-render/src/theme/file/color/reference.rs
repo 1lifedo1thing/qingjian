@@ -2,7 +2,7 @@
 
 use serde::Deserialize;
 
-use crate::color::Color;
+use render_engine::Color;
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(try_from = "String")]

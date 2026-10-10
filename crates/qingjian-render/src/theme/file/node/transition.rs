@@ -2,7 +2,7 @@
 
 use serde::Deserialize;
 
-use crate::animation::Easing;
+use render_engine::Easing;
 
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
 pub(crate) struct TransitionSpec {

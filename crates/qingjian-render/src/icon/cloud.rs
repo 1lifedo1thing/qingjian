@@ -1,16 +1,23 @@
 //! 云联想的小云朵：两个圆拱加一条圆角底边的并集，只描边不填充，对应 macOS 的 SF Symbol `cloud`（18×13 挤进 13×13 方块）
 //! 与 Windows 的 ☁ 字形。
 
-use tiny_skia::{BlendMode, PathBuilder, Pixmap, Rect};
+use render_engine::tiny_skia::{BlendMode, PathBuilder, Pixmap, Rect};
 
-use crate::canvas::Canvas;
-use crate::color::Color;
+use render_engine::{Canvas, Color, Icon};
 
 /// 描边宽度相对边长的比例。
 const STROKE_RATIO: f32 = 0.08;
 
-/// 画在 `(x, y)` 为左上角、边长 `size` 像素的方块里。
-pub(crate) fn draw_cloud(canvas: &mut Canvas, x: f32, y: f32, size: f32, color: Color) {
+#[derive(Debug)]
+pub(super) struct Cloud;
+
+impl Icon for Cloud {
+    fn draw(&self, canvas: &mut Canvas, x: f32, y: f32, size: f32, color: Color) {
+        draw_cloud(canvas, x, y, size, color);
+    }
+}
+
+fn draw_cloud(canvas: &mut Canvas, x: f32, y: f32, size: f32, color: Color) {
     let side = size.ceil() as u32 + 1;
     let Some(icon) = Pixmap::new(side, side) else {
         return;
@@ -29,7 +36,7 @@ pub(crate) fn draw_cloud(canvas: &mut Canvas, x: f32, y: f32, size: f32, color: 
 }
 
 /// 云朵轮廓：向内收 `inset` 像素的版本用来挖空。坐标按边长归一化。
-fn cloud_shape(size: f32, inset: f32) -> Option<tiny_skia::Path> {
+fn cloud_shape(size: f32, inset: f32) -> Option<render_engine::tiny_skia::Path> {
     let s = size;
     let mut path = PathBuilder::new();
     let mut circle = |cx: f32, cy: f32, r: f32| {

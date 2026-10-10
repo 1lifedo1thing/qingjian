@@ -2882,16 +2882,13 @@ version = "0.1.1"
 dependencies = [
  "clap",
  "cosmic-text",
- "resvg",
+ "render-engine",
  "serde",
  "serde_json",
- "taffy",
  "thiserror 2.0.21",
  "tiny-skia",
  "tracing",
  "tracing-subscriber",
- "windows",
- "zeno",
 ]
 
 [[package]]
@@ -3183,6 +3180,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "663ba70707f96e871406fe10d68128412e619b06d1d47cb91c3a4c6501176240"
 dependencies = [
  "bytecheck",
+]
+
+[[package]]
+name = "render-engine"
+version = "0.1.0-dev"
+dependencies = [
+ "cosmic-text",
+ "resvg",
+ "serde",
+ "taffy",
+ "thiserror 2.0.21",
+ "tiny-skia",
+ "tracing",
+ "ttf-parser",
+ "windows",
+ "zeno",
 ]
 
 [[package]]

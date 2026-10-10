@@ -2,11 +2,11 @@
 
 use std::collections::HashMap;
 
+use render_engine::{FamilyList, FontWeight};
 use serde::Deserialize;
 
+use super::FontStyle;
 use super::adaptive::Adaptive;
-use super::{FamilyList, FontStyle};
-use crate::theme::FontWeight;
 
 #[derive(Debug, Clone, Deserialize)]
 pub(crate) struct TextSettings {
