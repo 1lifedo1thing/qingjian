@@ -10,6 +10,7 @@ use winit::dpi::LogicalSize;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::{ElementState, Ime, MouseButton, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
+use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
 use winit::window::{Theme, Window, WindowId};
 
 use super::blit::blit;
@@ -225,7 +226,7 @@ impl<A: App> ApplicationHandler for Handler<A> {
                 Event::Scroll { dx, dy }
             }
             WindowEvent::KeyboardInput { event, .. } if event.state == ElementState::Pressed => {
-                let key = key_code(&event.logical_key);
+                let key = key_code(&event.key_without_modifiers());
                 let typing = self.runner.interaction().text_target().is_some();
                 // 粘贴由宿主读剪贴板，当作打了这些字
                 if typing

@@ -8,6 +8,7 @@ use crate::ui::{KeyCode, Modifiers};
 /// 滚轮一格滚多远（点）。
 const LINE: f32 = 40.0;
 
+/// 字符键按不带修饰键时的字算（⌥1 是 1 不是 ¡，⇧/ 是 / 不是 ?），快捷键才认得出来；打出来的字另走文字输入。
 pub(super) fn key_code(key: &Key) -> Option<KeyCode> {
     Some(match key {
         Key::Named(NamedKey::Tab) => KeyCode::Tab,
@@ -37,6 +38,8 @@ pub(super) fn modifiers(state: ModifiersState) -> Modifiers {
         } else {
             state.control_key()
         },
+        control: state.control_key(),
+        logo: state.super_key(),
     }
 }
 
