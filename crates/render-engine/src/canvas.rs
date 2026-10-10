@@ -130,12 +130,17 @@ impl Canvas {
 
     /// 把同大的离屏图层按不透明度合成上来。
     pub fn draw_layer(&mut self, layer: &Pixmap, opacity: f32) {
+        self.draw_layer_at(0, 0, layer, opacity);
+    }
+
+    /// 把离屏图层按不透明度合成到 `(x, y)`（图层左上角）。
+    pub fn draw_layer_at(&mut self, x: i32, y: i32, layer: &Pixmap, opacity: f32) {
         let paint = PixmapPaint {
             opacity,
             ..PixmapPaint::default()
         };
         self.pixmap
-            .draw_pixmap(0, 0, layer.as_ref(), &paint, Transform::identity(), None);
+            .draw_pixmap(x, y, layer.as_ref(), &paint, Transform::identity(), None);
     }
 
     /// 另一张位图原样盖到 `(x, y)`（替换，不混合）；局部重画的结果写回整帧用。

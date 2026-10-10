@@ -178,10 +178,38 @@ impl Scene {
         if opacity <= 0.0 {
             return Ok(());
         }
+        // 图层只开子树画出来的那一块（半透明的多是禁用的小控件，开整张画布每帧要多花好几毫秒）；
+        // 子树里有动画中的节点时，它们的位置是整张画布的坐标，退回整张
+        if !self.moving(root) {
+            let extent = self.subtree_extent(root, x, y)?;
+            let left = extent.left.floor().max(0.0);
+            let top = extent.top.floor().max(0.0);
+            let right = extent.right.ceil().min(canvas.width() as f32);
+            let bottom = extent.bottom.ceil().min(canvas.height() as f32);
+            if right <= left || bottom <= top {
+                return Ok(());
+            }
+            let mut layer = Canvas::new((right - left) as u32, (bottom - top) as u32)?;
+            self.paint_subtree(root, &mut layer, text, x - left, y - top)?;
+            canvas.draw_layer_at(left as i32, top as i32, &layer.into_pixmap(), opacity);
+            return Ok(());
+        }
         let mut layer = Canvas::new(canvas.width(), canvas.height())?;
         self.paint_subtree(root, &mut layer, text, x, y)?;
         canvas.draw_layer(&layer.into_pixmap(), opacity);
         Ok(())
+    }
+
+    /// 子树里有过渡中或带姿态的节点。
+    fn moving(&self, node: NodeId) -> bool {
+        let own = self
+            .tree
+            .get_node_context(node)
+            .is_some_and(|context| context.placed.is_some() || context.pose.is_some());
+        own || self
+            .tree
+            .children(node)
+            .is_ok_and(|children| children.into_iter().any(|child| self.moving(child)))
     }
 
     fn paint_subtree(
