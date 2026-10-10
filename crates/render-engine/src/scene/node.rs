@@ -25,4 +25,7 @@ pub struct SceneNode {
 
     /// 这一帧的姿态（循环动画算出来的），整棵子树跟着变换；`None` 为原样。
     pub pose: Option<Pose>,
+
+    /// 子节点只画在这个节点的盒子里（圆角半径，像素）；`None` 不裁。节点自己的画面与效果不受影响。
+    pub clip: Option<f32>,
 }

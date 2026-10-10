@@ -29,6 +29,9 @@ pub struct WidgetColors {
     /// 卡片、输入框的底。
     pub surface: Color,
 
+    /// 弹出菜单的底：要不透明，盖住底下的内容。
+    pub popup: Color,
+
     /// 卡片边框、分隔线、输入框边框。
     pub line: Color,
 
@@ -66,6 +69,7 @@ impl WidgetColors {
         chip: Color::rgb(0xFF, 0xFF, 0xFF),
         chip_text: Color::gray(0, 230),
         surface: Color::rgb(0xFF, 0xFF, 0xFF),
+        popup: Color::rgb(0xFF, 0xFF, 0xFF),
         line: Color::gray(0, 22),
         hover: Color::gray(0, 12),
         pressed: Color::gray(0, 26),
@@ -87,6 +91,7 @@ impl WidgetColors {
         chip: Color::rgb(0x5A, 0x5A, 0x5E),
         chip_text: Color::gray(255, 240),
         surface: Color::gray(255, 12),
+        popup: Color::rgb(0x2A, 0x2A, 0x2D),
         line: Color::gray(255, 20),
         hover: Color::gray(255, 14),
         pressed: Color::gray(255, 30),

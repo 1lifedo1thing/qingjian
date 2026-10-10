@@ -246,7 +246,18 @@ impl Scene {
                 .map(|color| visual.recolored(color));
             let visual = recolored.as_ref().unwrap_or(visual);
             let children = self.tree.children(root)?;
-            for kind in [EffectKind::DropShadow, EffectKind::InnerShadow] {
+            // 滚出裁剪区的节点（长列表）连同投影整个不画：省下文字整形与栅格；子节点照样逐个判断
+            let reach = self.reach(root).unwrap_or(0.0);
+            let shown = canvas.visible(
+                rect.0 - reach,
+                rect.1 - reach,
+                rect.2 + reach * 2.0,
+                rect.3 + reach * 2.0,
+            );
+            for kind in [EffectKind::DropShadow, EffectKind::InnerShadow]
+                .into_iter()
+                .filter(|_| shown)
+            {
                 if kind == EffectKind::InnerShadow {
                     self.draw_own(canvas, text, root, visual, rect)?;
                 }
@@ -297,8 +308,15 @@ impl Scene {
                 }
             }
         }
+        let clip = self.tree.get_node_context(root).and_then(|node| node.clip);
+        if let Some(radius) = clip {
+            canvas.push_clip(rect.0, rect.1, rect.2, rect.3, radius);
+        }
         for child in self.tree.children(root)? {
             self.paint(child, canvas, text, x, y)?;
+        }
+        if clip.is_some() {
+            canvas.pop_clip();
         }
         Ok(())
     }

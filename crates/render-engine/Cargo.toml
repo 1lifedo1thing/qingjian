@@ -19,14 +19,23 @@ serde.workspace = true
 # 只用它判断字体有没有能栅格化的轮廓表；与 fontdb 用的同一版本
 ttf-parser = { version = "0.25.1", default-features = false, features = ["std"] }
 
+# 窗口宿主（`host` 特性）
+winit = { workspace = true, optional = true }
+softbuffer = { workspace = true, optional = true }
+
+[features]
+host = ["dep:winit", "dep:softbuffer"]
+
 [target.'cfg(windows)'.dependencies]
 # 字体登记走 DirectWrite（按字族名找文件、列字族）
 windows = { version = "0.62.2", features = ["Win32_Graphics_DirectWrite"] }
 
 [dev-dependencies]
 serde_json.workspace = true
-winit.workspace = true
-softbuffer.workspace = true
+
+[[example]]
+name = "window"
+required-features = ["host"]
 
 [lints]
 workspace = true

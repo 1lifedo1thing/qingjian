@@ -15,6 +15,7 @@ mod icon;
 mod keyed;
 mod layer_place;
 mod locate;
+mod located;
 mod node;
 mod paint;
 mod split;
@@ -38,6 +39,7 @@ pub use fill::Fill;
 pub use icon::Icon;
 pub use keyed::Keyed;
 pub use layer_place::LayerPlace;
+pub use located::Located;
 pub use node::SceneNode;
 pub use split::SplitMark;
 pub use visual::Visual;
@@ -113,6 +115,7 @@ impl Scene {
                 placed: None,
                 animation: None,
                 pose: None,
+                clip: None,
             }),
         )?;
         Ok(node)
@@ -122,6 +125,13 @@ impl Scene {
     pub fn set_opacity(&mut self, node: NodeId, opacity: f32) {
         if let Some(context) = self.tree.get_node_context_mut(node) {
             context.opacity = opacity.clamp(0.0, 1.0);
+        }
+    }
+
+    /// 子节点只画在这个节点的盒子里（滚动区、圆角卡片），`radius` 是圆角（像素）。命中测试同样只认盒子里面。
+    pub fn set_clip(&mut self, node: NodeId, radius: f32) {
+        if let Some(context) = self.tree.get_node_context_mut(node) {
+            context.clip = Some(radius.max(0.0));
         }
     }
 

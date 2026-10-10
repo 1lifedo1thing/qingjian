@@ -15,6 +15,7 @@ mod interact;
 mod interaction;
 mod key;
 mod response;
+mod scroll_extent;
 mod state;
 
 pub use builder::Ui;
@@ -24,4 +25,5 @@ pub use interact::Interact;
 pub use interaction::Interaction;
 pub use key::Key;
 pub use response::Response;
+pub use scroll_extent::ScrollExtent;
 pub use state::ElementState;

@@ -5,10 +5,13 @@
 //! 场景树里一律是像素，点数由使用方乘好倍数；输出是预乘 alpha 的 RGBA 位图（[`Painted`]）。
 
 mod animation;
+mod app;
 mod canvas;
 mod color;
 mod error;
 mod fonts;
+#[cfg(feature = "host")]
+mod host;
 mod scene;
 mod shadow;
 mod stage;
@@ -18,6 +21,7 @@ mod ui;
 mod widgets;
 
 pub use animation::{Easing, Keyframe, Keyframes};
+pub use app::{App, Runner};
 pub use canvas::Canvas;
 pub use color::Color;
 pub use error::RenderError;
@@ -25,6 +29,8 @@ pub use error::RenderError;
 #[cfg(target_os = "windows")]
 pub use fonts::directwrite as system_fonts;
 pub use fonts::{FontLibrary, UiFont};
+#[cfg(feature = "host")]
+pub use host::{HostError, TITLEBAR, WindowOptions, run as run_window};
 pub use scene::{BoxPaint, Effect, EffectKind, Fill, Icon, Scene, Visual};
 pub use stage::{Painted, Stage};
 pub use svg_image::SvgImage;
@@ -32,11 +38,11 @@ pub use text::font::{FamilyId, FamilyList, FamilyTable, FontSpec, FontWeight};
 pub use text::{Decoration, TextPainter, TextSize, TextStyle};
 pub use ui::{
     ElementState, Elements, Event, Interact, Interaction, Key, KeyCode, KeyPress, Modifiers,
-    Response, Ui,
+    Response, ScrollExtent, Ui,
 };
 pub use widgets::{
-    Button, Checkbox, NavItem, SearchField, Segmented, Select, SettingRow, Stepper, Switch,
-    WidgetColors, WidgetTheme, group, section_title,
+    Button, Checkbox, Menu, NavItem, ScrollArea, SearchField, Segmented, Select, SettingRow,
+    Stepper, Switch, WidgetColors, WidgetTheme, group, section_title,
 };
 
 /// 使用方建树用的布局类型、自己画图标用的路径与混合模式，与这里是同一个 taffy、tiny-skia。

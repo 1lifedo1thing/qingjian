@@ -2,6 +2,7 @@
 
 mod keyboard;
 mod pointer;
+mod scroll;
 #[cfg(test)]
 mod tests;
 
@@ -10,6 +11,7 @@ use std::collections::hash_map::Entry;
 
 use taffy::NodeId;
 
+use super::ScrollExtent;
 use super::element::Element;
 use super::{ElementState, Elements, Event, Key, Response};
 use crate::error::RenderError;
@@ -35,6 +37,15 @@ pub struct Interaction<M> {
 
     /// 焦点是键盘带来的，画焦点环。
     focus_visible: bool,
+
+    /// 各滚动区的滚动位置（像素，向右、向下为正），元素暂时不在树里也留着，回来时接着原来的位置。
+    offsets: HashMap<Key, (f32, f32)>,
+
+    /// 这一帧各滚动区能滚多远，与视口、内容的高度。
+    extents: HashMap<Key, ScrollExtent>,
+
+    /// 滚动位置每变一次加一：使用方拿它区分「内容被滚动挪了」与「布局真的变了」，前者不该触发位置过渡。
+    scroll_generation: u64,
 }
 
 impl<M> Default for Interaction<M> {
@@ -53,6 +64,9 @@ impl<M> Interaction<M> {
             pressed: None,
             focused: None,
             focus_visible: false,
+            offsets: HashMap::new(),
+            extents: HashMap::new(),
+            scroll_generation: 0,
         }
     }
 
@@ -69,7 +83,7 @@ impl<M> Interaction<M> {
 
     /// 元素上一帧在根坐标里的矩形（左、上、宽、高，像素）：弹出层定位、测试里找点击位置用。
     pub fn rect(&self, key: Key) -> Option<(f32, f32, f32, f32)> {
-        self.element(key).map(|element| element.rect)
+        self.element(key).map(Element::rect)
     }
 
     /// 收下新一帧的元素（`scene` 已布局）。不在 `root` 下的元素丢掉；焦点、按下的元素没了（或焦点元素被禁用）就清掉，悬停按指针位置重新命中。
@@ -88,7 +102,13 @@ impl<M> Interaction<M> {
         self.elements.clear();
         self.index.clear();
         let mut by_node: HashMap<NodeId, usize> = HashMap::new();
-        for (node, rect) in scene.paint_order(root)? {
+        let located = scene.paint_order(root)?;
+        let boxes: HashMap<NodeId, (f32, f32, f32, f32)> = located
+            .iter()
+            .map(|place| (place.node, place.rect))
+            .collect();
+        for place in located {
+            let node = place.node;
             let Some((key, interact)) = pending.remove(&node) else {
                 continue;
             };
@@ -104,14 +124,13 @@ impl<M> Interaction<M> {
             by_node.insert(node, position);
             self.elements.push(Element {
                 key,
-                node,
                 interact,
-                rect,
+                located: place,
                 parent: None,
             });
         }
         for element in &mut self.elements {
-            let mut current = scene.parent(element.node);
+            let mut current = scene.parent(element.node());
             while let Some(node) = current {
                 if let Some(&position) = by_node.get(&node) {
                     element.parent = Some(position);
@@ -137,6 +156,7 @@ impl<M> Interaction<M> {
             self.pressed = None;
             changed = true;
         }
+        changed |= self.measure_scrolls(&boxes);
         changed |= self.rehover();
         Ok(changed)
     }
@@ -152,6 +172,7 @@ impl<M> Interaction<M> {
             Event::PointerDown => self.pointer_down(),
             Event::PointerUp => self.pointer_up(),
             Event::Key(press) => self.key(press),
+            Event::Scroll { dx, dy } => self.scroll(*dx, *dy),
         }
     }
 

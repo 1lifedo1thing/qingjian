@@ -211,3 +211,100 @@ fn state_survives_rebuild_and_lost_focus_clears() {
     interaction.handle(&press(KeyCode::Tab, false));
     assert!(interaction.state(key("ok")).focused);
 }
+
+/// 100×100 的视口（裁剪）里一列 300 高的内容，内容里一个 100×50 的按钮在最上面；`offset` 是滚动位置。
+fn scrolling(interaction: &mut Interaction<Message>) {
+    let offset = interaction.scroll_offset(key("viewport")).1;
+    let mut ui = Ui::new(interaction);
+    let fixed = |width: f32, height: f32| Style {
+        size: Size {
+            width: Dimension::length(width),
+            height: Dimension::length(height),
+        },
+        flex_shrink: 0.0,
+        ..Style::default()
+    };
+    let button = ui
+        .scene()
+        .node(fixed(100.0, 50.0), Visual::Group, &[])
+        .unwrap();
+    let button_key = ui.key("ok");
+    ui.interact(button, button_key, Interact::new().on_click(Message::Ok));
+    let content = ui
+        .scene()
+        .node(
+            Style {
+                flex_direction: FlexDirection::Column,
+                position: taffy::Position::Relative,
+                inset: taffy::Rect {
+                    top: taffy::LengthPercentageAuto::length(-offset),
+                    ..taffy::Rect::auto()
+                },
+                ..fixed(100.0, 300.0)
+            },
+            Visual::Group,
+            &[button],
+        )
+        .unwrap();
+    let viewport = ui
+        .scene()
+        .node(
+            Style {
+                flex_direction: FlexDirection::Column,
+                overflow: taffy::Point {
+                    x: taffy::Overflow::Hidden,
+                    y: taffy::Overflow::Hidden,
+                },
+                ..fixed(100.0, 100.0)
+            },
+            Visual::Group,
+            &[content],
+        )
+        .unwrap();
+    ui.scene().set_clip(viewport, 0.0);
+    let viewport_key = ui.key("viewport");
+    ui.interact(viewport, viewport_key, Interact::new().scrolls(content));
+    let (mut scene, elements) = ui.finish();
+    layout(&mut scene, viewport);
+    interaction.attach(&scene, viewport, elements).unwrap();
+}
+
+#[test]
+fn scroll_clamps_to_content_and_clip_hides_scrolled_out_parts() {
+    let mut interaction = Interaction::new();
+    scrolling(&mut interaction);
+    let extent = interaction.scroll_extent(key("viewport")).unwrap();
+    assert_eq!(extent.max(), (0.0, 200.0));
+
+    interaction.handle(&Event::PointerMoved { x: 50.0, y: 80.0 });
+    let response = interaction.handle(&Event::Scroll { dx: 0.0, dy: 30.0 });
+    assert!(response.changed);
+    scrolling(&mut interaction);
+    assert_eq!(interaction.scroll_offset(key("viewport")), (0.0, 30.0));
+    // 按钮被挪到 -30..20：视口里看得见的那段还能点
+    interaction.handle(&Event::PointerMoved { x: 50.0, y: 10.0 });
+    assert!(interaction.state(key("ok")).hovered);
+    // 按钮盒子伸到视口上面的那段被裁掉了，点不到
+    interaction.handle(&Event::PointerMoved { x: 50.0, y: -10.0 });
+    assert!(!interaction.state(key("ok")).hovered);
+    // 指针不在视口上时滚不动
+    assert!(
+        !interaction
+            .handle(&Event::Scroll { dx: 0.0, dy: 10.0 })
+            .changed
+    );
+
+    interaction.handle(&Event::PointerMoved { x: 50.0, y: 50.0 });
+    interaction.handle(&Event::Scroll {
+        dx: 0.0,
+        dy: 1000.0,
+    });
+    scrolling(&mut interaction);
+    assert_eq!(interaction.scroll_offset(key("viewport")), (0.0, 200.0));
+    interaction.handle(&Event::PointerMoved { x: 50.0, y: 50.0 });
+    assert!(
+        !interaction
+            .handle(&Event::Scroll { dx: 0.0, dy: 10.0 })
+            .changed
+    );
+}

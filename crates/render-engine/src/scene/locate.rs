@@ -3,10 +3,8 @@
 use taffy::NodeId;
 
 use super::Scene;
+use super::located::{Located, Rect, intersect};
 use crate::error::RenderError;
-
-/// 左、上、宽、高（像素）。
-type Rect = (f32, f32, f32, f32);
 
 impl Scene {
     /// `node` 在 `root` 坐标里的矩形（左、上、宽、高，像素），布局之后调。
@@ -25,11 +23,11 @@ impl Scene {
         self.tree.parent(node)
     }
 
-    /// 以 `root` 为根的所有节点按画序（先父后子、兄弟按先后），带在 `root` 坐标里的矩形；布局之后调。
-    pub fn paint_order(&self, root: NodeId) -> Result<Vec<(NodeId, Rect)>, RenderError> {
+    /// 以 `root` 为根的所有节点按画序（先父后子、兄弟按先后），带在 `root` 坐标里的盒子与上级裁剪；布局之后调。
+    pub fn paint_order(&self, root: NodeId) -> Result<Vec<Located>, RenderError> {
         let mut found = Vec::new();
-        let mut stack = vec![(root, 0.0, 0.0)];
-        while let Some((node, x, y)) = stack.pop() {
+        let mut stack: Vec<(NodeId, f32, f32, Option<Rect>)> = vec![(root, 0.0, 0.0, None)];
+        while let Some((node, x, y, clip)) = stack.pop() {
             let layout = self.tree.layout(node)?;
             // 根节点自己的位置不算，与 `rect_in` 一致
             let (left, top) = if node == root {
@@ -37,9 +35,19 @@ impl Scene {
             } else {
                 (x + layout.location.x, y + layout.location.y)
             };
-            found.push((node, (left, top, layout.size.width, layout.size.height)));
+            let rect = (left, top, layout.size.width, layout.size.height);
+            found.push(Located { node, rect, clip });
+            let clips = self
+                .tree
+                .get_node_context(node)
+                .is_some_and(|context| context.clip.is_some());
+            let inner = match (clips, clip) {
+                (true, Some(outer)) => Some(intersect(outer, rect)),
+                (true, None) => Some(rect),
+                (false, outer) => outer,
+            };
             for child in self.tree.children(node)?.into_iter().rev() {
-                stack.push((child, left, top));
+                stack.push((child, left, top, inner));
             }
         }
         Ok(found)

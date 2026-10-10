@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use taffy::NodeId;
 
-use super::{ElementState, Elements, Interact, Interaction, Key};
+use super::{ElementState, Elements, Interact, Interaction, Key, ScrollExtent};
 use crate::animation::Easing;
 use crate::scene::Scene;
 
@@ -50,6 +50,19 @@ impl<'a, M> Ui<'a, M> {
 
     pub fn state(&self, key: Key) -> ElementState {
         self.interaction.state(key)
+    }
+
+    /// 元素上一帧在根坐标里的矩形（左、上、宽、高，像素）：弹出层贴着它定位。第一帧还没有。
+    pub fn rect(&self, key: Key) -> Option<(f32, f32, f32, f32)> {
+        self.interaction.rect(key)
+    }
+
+    /// 滚动区的滚动位置与上一帧的大小，见 [`Interaction::scroll_offset`]、[`Interaction::scroll_extent`]。
+    pub fn scroll(&self, key: Key) -> ((f32, f32), Option<ScrollExtent>) {
+        (
+            self.interaction.scroll_offset(key),
+            self.interaction.scroll_extent(key),
+        )
     }
 
     /// 登记 `node` 可交互；矩形取它布局后的盒子。

@@ -50,6 +50,15 @@ impl Scene {
         if let Some(reach) = self.reach(node) {
             extent.include((x, y, layout.size.width, layout.size.height), reach);
         }
+        // 裁剪的节点：子树画不出盒子
+        if self
+            .tree
+            .get_node_context(node)
+            .is_some_and(|context| context.clip.is_some())
+        {
+            extent.include((x, y, layout.size.width, layout.size.height), 0.0);
+            return Ok(());
+        }
         for child in self.tree.children(node)? {
             self.grow(child, x, y, extent)?;
         }
