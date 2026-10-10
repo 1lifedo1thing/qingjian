@@ -83,6 +83,13 @@ pub fn run(config: Option<&Path>, directory: &Path) -> Result<(), Box<dyn std::e
     click(&mut runner, Key::ROOT.child("menu").child(1_usize))?;
     shot(&mut runner, "选小鹤双拼：多出「输入框显示按键」")?;
 
+    click(&mut runner, Key::ROOT.child("nav").child(PageId::Phrases))?;
+    click(&mut runner, Key::ROOT.child("add-phrase"))?;
+    shot(&mut runner, "自定义短语：点「新增」弹出编辑卡片")?;
+    click(&mut runner, Key::ROOT.child("phrase-save"))?;
+    shot(&mut runner, "空着点保存：卡片里说原因")?;
+    click(&mut runner, Key::ROOT.child("phrase-cancel"))?;
+
     click(&mut runner, Key::ROOT.child("nav").child(PageId::Advanced))?;
     click(&mut runner, Key::ROOT.child("clear-input-log"))?;
     shot(&mut runner, "高级：点一下清空，按钮变成确认")?;

@@ -12,6 +12,7 @@ mod input;
 mod language;
 mod lists;
 mod menus;
+mod phrases;
 pub(super) mod shortcuts;
 mod sidebar;
 mod themes;
@@ -93,12 +94,16 @@ pub fn view(
     )?;
     let key = ui.key("root");
     let menu_open = settings.menu.is_some();
+    let dialog_open = settings.phrase.is_some();
     ui.interact(
         root,
         key,
         Interact::new().on_key(move |press| {
             if menu_open && press.key == KeyCode::Escape {
                 return Some(Message::CloseMenu);
+            }
+            if dialog_open && press.key == KeyCode::Escape {
+                return Some(Message::ClosePhrase);
             }
             let close = press.key == KeyCode::Escape
                 || (press.modifiers.command && press.key == KeyCode::Character("w".to_owned()));
@@ -115,6 +120,7 @@ fn content(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
         PageId::Language => language::language(ui, page)?,
         PageId::Appearance => appearance::appearance(ui, page)?,
         PageId::Shortcuts => shortcuts::shortcuts(ui, page)?,
+        PageId::Phrases => phrases::phrases(ui, page)?,
         PageId::Dictionaries => dictionaries::dictionaries(ui, page)?,
         PageId::Cloud => cloud::cloud(ui, page)?,
         PageId::Advanced => advanced::advanced(ui, page)?,

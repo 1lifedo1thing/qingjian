@@ -14,6 +14,7 @@ mod message;
 mod page_id;
 mod palette;
 mod paths;
+mod phrases;
 mod previews;
 mod settings;
 mod shortcut;

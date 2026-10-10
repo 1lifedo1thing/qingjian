@@ -13,15 +13,18 @@ pub enum SizeKind {
     Annotation,
 }
 
-/// 云服务页的输入框。
+/// 输入框：云服务页的三个，短语编辑卡片里的两个。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FieldId {
     BaseUrl,
     Model,
     ApiKey,
+    PhraseCode,
+    PhraseText,
 }
 
 impl FieldId {
+    /// 存进配置的那几个（短语的两个随卡片一起存）。
     pub const ALL: [Self; 3] = [Self::BaseUrl, Self::Model, Self::ApiKey];
 
     /// 配置文件 `[predict]` 里的键。
@@ -30,6 +33,8 @@ impl FieldId {
             Self::BaseUrl => "base_url",
             Self::Model => "model",
             Self::ApiKey => "api_key",
+            Self::PhraseCode => "code",
+            Self::PhraseText => "text",
         }
     }
 }
@@ -70,6 +75,16 @@ pub enum Message {
     StopRecording,
     /// 快捷键页的「恢复默认」。
     ResetShortcuts,
+    /// 打开短语编辑卡片：`None` 新增，`Some(i)` 改第 i 条。
+    OpenPhrase(Option<usize>),
+    /// 卡片里的位置加减。
+    PhrasePosition(i32),
+    SavePhrase,
+    /// 卡片里的「删除」（第一下只是确认）。
+    DeletePhrase,
+    ClosePhrase,
+    /// 列表里直接开关第 i 条。
+    TogglePhrase(usize),
     /// 选文件导入词库或码表。
     Import(Kind),
     /// 移除用户导入的一本（文件名不含扩展名）。

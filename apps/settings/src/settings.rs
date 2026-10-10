@@ -18,6 +18,7 @@ use crate::import::{ImportJob, Report};
 use crate::library::{Kind, Library};
 use crate::message::{FieldId, Message, Popup, SizeKind};
 use crate::page_id::PageId;
+use crate::phrases::PhraseEditor;
 use crate::previews::Previews;
 use crate::shortcut::Shortcut;
 use crate::update::UpdateCheck;
@@ -72,6 +73,9 @@ pub struct Settings {
 
     pub import: ImportJob,
 
+    /// 开着的短语编辑卡片。
+    pub phrase: Option<PhraseEditor>,
+
     waker: Option<Waker>,
 
     /// 「关于」页的数据来源展开着。
@@ -112,6 +116,7 @@ impl Settings {
             recording: None,
             library: Library::scan(),
             import: ImportJob::default(),
+            phrase: None,
             waker: None,
         }
         .with_fields())
@@ -130,7 +135,7 @@ impl Settings {
         let value = match id {
             FieldId::BaseUrl => predict.base_url.clone(),
             FieldId::Model => predict.model.clone(),
-            FieldId::ApiKey => String::new(),
+            FieldId::ApiKey | FieldId::PhraseCode | FieldId::PhraseText => return,
         };
         self.fields.insert(id, TextEdit::new(value));
     }
@@ -154,6 +159,7 @@ impl Settings {
                     self.write("predict", id.key(), text);
                 }
             }
+            FieldId::PhraseCode | FieldId::PhraseText => return,
             FieldId::ApiKey if text.is_empty() => {}
             // 密码框看不见内容，粘贴多了（带上了终端提示符、命令）用户发现不了
             FieldId::ApiKey if text.chars().any(|c| !c.is_ascii_graphic()) => {
@@ -189,6 +195,65 @@ impl Settings {
         }
         self.library = Library::scan();
         self.notice = Some((kind.slot(), report.lines.join("\n")));
+    }
+
+    fn open_phrase(&mut self, index: Option<usize>) {
+        let (editor, code, text) =
+            match index.and_then(|i| Some((i, self.config.custom_phrases.get(i)?))) {
+                Some((i, phrase)) => (
+                    PhraseEditor::edit(i, phrase),
+                    phrase.code.clone(),
+                    phrase.text.clone(),
+                ),
+                None => (PhraseEditor::new(), String::new(), String::new()),
+            };
+        self.fields.insert(FieldId::PhraseCode, TextEdit::new(code));
+        self.fields
+            .insert(FieldId::PhraseText, TextEdit::multiline(text));
+        self.phrase = Some(editor);
+    }
+
+    fn close_phrase(&mut self) {
+        self.phrase = None;
+        self.fields.remove(&FieldId::PhraseCode);
+        self.fields.remove(&FieldId::PhraseText);
+    }
+
+    /// 存卡片（`delete` 时删掉这条）：整张表校验写回，失败把原因留在卡片里。
+    fn save_phrase(&mut self, delete: bool) {
+        let Some(editor) = self.phrase.clone() else {
+            return;
+        };
+        let field = |id| {
+            self.fields
+                .get(&id)
+                .map(|edit: &TextEdit| edit.text().to_owned())
+                .unwrap_or_default()
+        };
+        let phrase = (!delete).then(|| qingjian_core::CustomPhrase {
+            code: field(FieldId::PhraseCode).trim().to_owned(),
+            text: field(FieldId::PhraseText),
+            position: editor.position,
+            enabled: editor.enabled,
+        });
+        let saved = editor
+            .apply(&self.config.custom_phrases, phrase)
+            .and_then(|list| self.write_phrases(&list));
+        match saved {
+            Ok(()) => self.close_phrase(),
+            Err(error) => {
+                if let Some(editor) = self.phrase.as_mut() {
+                    editor.error = Some(error);
+                    editor.confirm_delete = false;
+                }
+            }
+        }
+    }
+
+    fn write_phrases(&mut self, list: &[qingjian_core::CustomPhrase]) -> Result<(), String> {
+        Config::set_custom_phrases(&self.path, list)?;
+        self.reload();
+        Ok(())
     }
 
     /// 快捷键页的各项（含翻页键、模式键）写回缺省；辅码触发键在「输入」页，不动。
@@ -309,6 +374,7 @@ impl App for Settings {
                 }
                 self.page = page;
                 self.recording = None;
+                self.close_phrase();
                 if page == PageId::Dictionaries {
                     self.library = Library::scan();
                 }
@@ -324,6 +390,37 @@ impl App for Settings {
                 Err(reason) => self.notice = Some((shortcut.title(), reason)),
             },
             Message::ResetShortcuts => self.reset_shortcuts(),
+            Message::OpenPhrase(index) => self.open_phrase(index),
+            Message::PhrasePosition(delta) => {
+                if let Some(editor) = self.phrase.as_mut() {
+                    editor.position = editor
+                        .position
+                        .saturating_add_signed(delta as isize)
+                        .clamp(1, 9);
+                }
+            }
+            Message::SavePhrase => self.save_phrase(false),
+            Message::DeletePhrase => {
+                let confirmed = self
+                    .phrase
+                    .as_ref()
+                    .is_some_and(|editor| editor.confirm_delete);
+                if confirmed {
+                    self.save_phrase(true);
+                } else if let Some(editor) = self.phrase.as_mut() {
+                    editor.confirm_delete = true;
+                }
+            }
+            Message::ClosePhrase => self.close_phrase(),
+            Message::TogglePhrase(index) => {
+                let mut list = self.config.custom_phrases.clone();
+                if let Some(phrase) = list.get_mut(index) {
+                    phrase.enabled = !phrase.enabled;
+                    self.write_phrases(&list).unwrap_or_else(|error| {
+                        self.notice = Some(("phrases", error));
+                    });
+                }
+            }
             Message::Import(kind) => match self.import.start(kind, self.waker.clone()) {
                 Ok(true) => self.notice = Some((kind.slot(), "正在导入…".to_owned())),
                 Ok(false) => {}

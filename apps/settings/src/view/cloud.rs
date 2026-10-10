@@ -132,7 +132,7 @@ fn field(
             &page.theme,
             ("field", id),
             move |edit| Message::Edit(id, edit),
-            Message::Commit(id),
+            Some(Message::Commit(id)),
             Some(Message::Cancel(id)),
         )?;
     let mut row = SettingRow::new(title).control(input);
