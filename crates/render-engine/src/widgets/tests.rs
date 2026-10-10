@@ -158,7 +158,14 @@ fn field_frame(interaction: &mut Interaction<Field>, text: &mut TextPainter, edi
     let theme = WidgetTheme::new(WidgetColors::LIGHT, 1.0);
     let mut ui = Ui::new(interaction);
     let field = TextField::new(edit)
-        .build(&mut ui, &theme, "field", Field::Edit, Field::Commit, None)
+        .build(
+            &mut ui,
+            &theme,
+            "field",
+            Field::Edit,
+            Some(Field::Commit),
+            None,
+        )
         .unwrap();
     let switch = Switch::new(false)
         .build(&mut ui, &theme, "switch", Field::Commit)

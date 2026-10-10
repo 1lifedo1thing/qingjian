@@ -1,4 +1,5 @@
-//! 单行输入框的编辑状态：文字、光标、选区、输入法正在组的字。由使用方保存，输入框产出的 [`Edit`] 交给 [`TextEdit::apply`]。
+//! 输入框的编辑状态：文字、光标、选区、输入法正在组的字。由使用方保存，输入框产出的 [`Edit`] 交给 [`TextEdit::apply`]。
+//! 多行的（[`TextEdit::multiline`]）回车换行、上下键换行，行首行尾按当前行算。
 
 use std::ops::Range;
 
@@ -24,6 +25,8 @@ pub struct TextEdit {
 
     /// 输入法正在组的字，画在光标处，上屏前不算进文字。
     preedit: String,
+
+    multiline: bool,
 }
 
 impl TextEdit {
@@ -36,7 +39,20 @@ impl TextEdit {
             caret: end,
             anchor: end,
             preedit: String::new(),
+            multiline: false,
         }
+    }
+
+    /// 多行：保留换行，回车插入换行。
+    pub fn multiline(text: impl Into<String>) -> Self {
+        Self {
+            multiline: true,
+            ..Self::new(text.into().replace("\r\n", "\n").replace('\r', "\n"))
+        }
+    }
+
+    pub fn is_multiline(&self) -> bool {
+        self.multiline
     }
 
     pub fn text(&self) -> &str {
@@ -61,8 +77,13 @@ impl TextEdit {
         match edit {
             Edit::Text(TextInput::Insert(text)) => {
                 self.preedit.clear();
-                // 单行：粘贴进来的换行、制表符都去掉（密钥后面常带着换行）
-                let clean: String = text.chars().filter(|c| !c.is_control()).collect();
+                // 单行：粘贴进来的换行、制表符都去掉（密钥后面常带着换行）；多行留着换行
+                let text = text.replace("\r\n", "\n").replace('\r', "\n");
+                let multiline = self.multiline;
+                let clean: String = text
+                    .chars()
+                    .filter(|&c| !c.is_control() || (multiline && c == '\n'))
+                    .collect();
                 self.replace_selection(&clean);
                 None
             }
@@ -78,9 +99,17 @@ impl TextEdit {
         let shift = press.modifiers.shift;
         let command = press.modifiers.command;
         match &press.key {
+            KeyCode::Enter if self.multiline => {
+                self.preedit.clear();
+                self.replace_selection("\n");
+            }
+            KeyCode::ArrowUp | KeyCode::ArrowDown if self.multiline => {
+                let target = self.vertical(press.key == KeyCode::ArrowDown);
+                self.move_to(target, shift);
+            }
             KeyCode::ArrowLeft => {
                 let target = if command {
-                    0
+                    self.line_start(self.caret)
                 } else if !shift && !self.selection().is_empty() {
                     self.selection().start
                 } else {
@@ -90,7 +119,7 @@ impl TextEdit {
             }
             KeyCode::ArrowRight => {
                 let target = if command {
-                    self.text.len()
+                    self.line_end(self.caret)
                 } else if !shift && !self.selection().is_empty() {
                     self.selection().end
                 } else {
@@ -98,12 +127,12 @@ impl TextEdit {
                 };
                 self.move_to(target, shift);
             }
-            KeyCode::Home => self.move_to(0, shift),
-            KeyCode::End => self.move_to(self.text.len(), shift),
+            KeyCode::Home => self.move_to(self.line_start(self.caret), shift),
+            KeyCode::End => self.move_to(self.line_end(self.caret), shift),
             KeyCode::Backspace => {
                 if self.selection().is_empty() {
                     self.anchor = if command {
-                        0
+                        self.line_start(self.caret)
                     } else {
                         self.previous(self.caret)
                     };
@@ -151,6 +180,41 @@ impl TextEdit {
         self.text.replace_range(range.clone(), text);
         self.caret = range.start + text.len();
         self.anchor = self.caret;
+    }
+
+    /// `at` 所在行的行首（单行就是 0）。
+    fn line_start(&self, at: usize) -> usize {
+        self.text[..at].rfind('\n').map_or(0, |index| index + 1)
+    }
+
+    /// `at` 所在行的行尾（换行符前；单行就是末尾）。
+    fn line_end(&self, at: usize) -> usize {
+        self.text[at..]
+            .find('\n')
+            .map_or(self.text.len(), |index| at + index)
+    }
+
+    /// 上一行或下一行里同一列（按字数算）的位置；行短就到行尾，没有那一行就到头或到尾。
+    fn vertical(&self, down: bool) -> usize {
+        let start = self.line_start(self.caret);
+        let column = self.text[start..self.caret].chars().count();
+        let target_start = if down {
+            let end = self.line_end(self.caret);
+            if end == self.text.len() {
+                return end;
+            }
+            end + 1
+        } else {
+            if start == 0 {
+                return 0;
+            }
+            self.line_start(start - 1)
+        };
+        let target_end = self.line_end(target_start);
+        self.text[target_start..target_end]
+            .char_indices()
+            .nth(column)
+            .map_or(target_end, |(index, _)| target_start + index)
     }
 
     fn previous(&self, at: usize) -> usize {
@@ -219,6 +283,27 @@ mod tests {
             Some("hello worLD".to_owned())
         );
         assert_eq!(edit.text(), "");
+    }
+
+    #[test]
+    fn multiline_keeps_newlines_and_moves_between_lines() {
+        let mut edit = TextEdit::multiline("第一行\r\nab");
+        assert_eq!(edit.text(), "第一行\nab");
+        key(&mut edit, KeyCode::ArrowUp, Modifiers::default());
+        // 第二行第 2 列 → 第一行第 2 列
+        insert(&mut edit, "|");
+        assert_eq!(edit.text(), "第一|行\nab");
+        key(&mut edit, KeyCode::End, Modifiers::default());
+        key(&mut edit, KeyCode::Enter, Modifiers::default());
+        insert(&mut edit, "x\ny");
+        assert_eq!(edit.text(), "第一|行\nx\ny\nab");
+        key(&mut edit, KeyCode::ArrowDown, Modifiers::default());
+        key(&mut edit, KeyCode::ArrowDown, Modifiers::default());
+        assert_eq!(edit.caret(), edit.text().len());
+
+        let mut single = TextEdit::new("");
+        insert(&mut single, "a\nb");
+        assert_eq!(single.text(), "ab");
     }
 
     #[test]

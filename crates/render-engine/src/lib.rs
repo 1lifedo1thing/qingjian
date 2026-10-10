@@ -42,8 +42,8 @@ pub use ui::{
 };
 pub use widgets::{
     Button, Checkbox, Edit, KeyRecorder, Menu, NavItem, ScrollArea, SearchField, Segmented, Select,
-    SettingRow, Stepper, Switch, TextEdit, TextField, WidgetColors, WidgetTheme, group, info,
-    paragraph, section_title,
+    SettingRow, Stepper, Switch, TextEdit, TextField, WidgetColors, WidgetTheme, dialog, group,
+    info, paragraph, section_title,
 };
 
 /// 使用方建树用的布局类型、自己画图标用的路径与混合模式，与这里是同一个 taffy、tiny-skia。

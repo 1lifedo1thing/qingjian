@@ -1,4 +1,4 @@
-//! 控件：开关、分段选择、按钮、勾选框、步进框、下拉框、输入框、录键按钮、导航项、搜索框，以及设置页用的分组卡片、行与段落。
+//! 控件：开关、分段选择、按钮、勾选框、步进框、下拉框、输入框、录键按钮、导航项、搜索框，以及设置页用的分组卡片、行、段落与对话框。
 //!
 //! 控件都是普通组件：在 [`crate::Ui`] 里建节点、登记交互，样子全由 [`WidgetTheme`] 给（颜色、圆角、字号、动效），
 //! 引擎只带一套中性的缺省主题，品牌外观由使用方换一套主题传进来。尺寸写点，建树时乘主题里的倍数。
@@ -10,6 +10,7 @@ mod check_mark;
 mod checkbox;
 mod chevron;
 mod colors;
+mod dialog;
 mod group;
 mod info;
 mod info_mark;
@@ -33,6 +34,7 @@ mod theme;
 pub use button::Button;
 pub use checkbox::Checkbox;
 pub use colors::WidgetColors;
+pub use dialog::dialog;
 pub use group::{group, section_title};
 pub use info::info;
 pub use key_recorder::KeyRecorder;
