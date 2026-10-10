@@ -3,6 +3,7 @@
 use render_engine::{Edit, KeyPress};
 
 use crate::action::Action;
+use crate::library::Kind;
 use crate::page_id::PageId;
 use crate::shortcut::Shortcut;
 
@@ -69,6 +70,10 @@ pub enum Message {
     StopRecording,
     /// 快捷键页的「恢复默认」。
     ResetShortcuts,
+    /// 选文件导入词库或码表。
+    Import(Kind),
+    /// 移除用户导入的一本（文件名不含扩展名）。
+    Remove(Kind, String),
     /// 表达式、问字两个模式键之一换成这个字母（撞了就对调）。
     ModeKey(&'static str, char),
     CheckUpdate,

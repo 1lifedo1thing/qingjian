@@ -14,6 +14,8 @@ use render_engine::{
 
 use crate::action::Action;
 use crate::cloud::CloudTest;
+use crate::import::{ImportJob, Report};
+use crate::library::{Kind, Library};
 use crate::message::{FieldId, Message, Popup, SizeKind};
 use crate::page_id::PageId;
 use crate::previews::Previews;
@@ -65,6 +67,11 @@ pub struct Settings {
     /// 正在录的快捷键。
     pub recording: Option<Shortcut>,
 
+    /// 词库与码表的清单，进词库页、导入、移除后重扫。
+    pub library: Library,
+
+    pub import: ImportJob,
+
     waker: Option<Waker>,
 
     /// 「关于」页的数据来源展开着。
@@ -103,6 +110,8 @@ impl Settings {
             cloud_test: CloudTest::default(),
             update: UpdateCheck::load(),
             recording: None,
+            library: Library::scan(),
+            import: ImportJob::default(),
             waker: None,
         }
         .with_fields())
@@ -160,6 +169,26 @@ impl Settings {
             }
         }
         self.reset_field(id);
+    }
+
+    /// 导入完了：之前关掉过的同名词库重新打开，重扫清单，把结果显示出来。
+    fn imported(&mut self, report: Report) {
+        let kind = report.kind;
+        let (section, key) = kind.disabled_key();
+        let disabled = match kind {
+            Kind::Dictionary => &self.config.dictionaries.disabled,
+            Kind::CodeTable => &self.config.aux_code.disabled,
+        };
+        let kept: Vec<String> = disabled
+            .iter()
+            .filter(|stem| !report.imported.contains(stem))
+            .cloned()
+            .collect();
+        if kept.len() != disabled.len() {
+            self.write_list(section, key, &kept);
+        }
+        self.library = Library::scan();
+        self.notice = Some((kind.slot(), report.lines.join("\n")));
     }
 
     /// 快捷键页的各项（含翻页键、模式键）写回缺省；辅码触发键在「输入」页，不动。
@@ -268,7 +297,7 @@ impl App for Settings {
         let armed = self.armed.take();
         if !matches!(
             message,
-            Message::Run(_) | Message::TestCloud | Message::CheckUpdate
+            Message::Run(_) | Message::TestCloud | Message::CheckUpdate | Message::Import(_)
         ) {
             self.notice = None;
         }
@@ -280,6 +309,9 @@ impl App for Settings {
                 }
                 self.page = page;
                 self.recording = None;
+                if page == PageId::Dictionaries {
+                    self.library = Library::scan();
+                }
             }
             Message::Record(shortcut) => self.recording = Some(shortcut),
             Message::StopRecording => self.recording = None,
@@ -292,6 +324,17 @@ impl App for Settings {
                 Err(reason) => self.notice = Some((shortcut.title(), reason)),
             },
             Message::ResetShortcuts => self.reset_shortcuts(),
+            Message::Import(kind) => match self.import.start(kind, self.waker.clone()) {
+                Ok(true) => self.notice = Some((kind.slot(), "正在导入…".to_owned())),
+                Ok(false) => {}
+                Err(error) => self.notice = Some((kind.slot(), error)),
+            },
+            Message::Remove(kind, stem) => {
+                if let Err(error) = crate::import::remove(kind, &stem) {
+                    self.notice = Some((kind.slot(), error));
+                }
+                self.library = Library::scan();
+            }
             Message::ModeKey(key, letter) => {
                 let mode = self.config.shortcut.mode.sanitized();
                 let (current, other, other_key) = if key == "expression" {
@@ -393,6 +436,10 @@ impl App for Settings {
         let mut changed = false;
         if let Some(text) = self.cloud_test.finish() {
             self.notice = Some(("cloud", text));
+            changed = true;
+        }
+        if let Some(report) = self.import.finish() {
+            self.imported(report);
             changed = true;
         }
         if let Some(text) = self.update.finish(&self.config.update) {

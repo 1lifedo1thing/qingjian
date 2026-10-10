@@ -6,7 +6,9 @@ use render_engine::taffy::{Dimension, FlexDirection, FlexWrap, NodeId, Rect, Siz
 use render_engine::{Checkbox, RenderError, SettingRow, Switch, Ui, Visual, group, section_title};
 
 use super::controls::{select, toggle_info, toggle_with};
+use super::lists::{entry_row, import_row, toggle_disabled};
 use super::{Page, shortcuts};
+use crate::library::Kind;
 use crate::message::{Message, Popup};
 use crate::shortcut::Shortcut;
 
@@ -70,6 +72,19 @@ pub fn input(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderErr
     out.push(section_title(ui, theme, "模糊音")?);
     out.push(group(ui, theme, &[fuzzy])?);
 
+    // 只有 Windows 的输入法加载码表；macOS、Linux 接上之前不显示，免得开了没用
+    if cfg!(windows) {
+        out.extend(aux_code(ui, page)?);
+    }
+    Ok(out)
+}
+
+/// 辅码：开关、显示、触发键，再一组码表（随包的、导入的、导入按钮）。
+fn aux_code(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderError> {
+    let theme = &page.theme;
+    let config = &page.settings.config;
+    let general = &config.general;
+    let mut out = Vec::new();
     let aux = &config.aux_code;
     let rows = vec![
         toggle_info(
@@ -106,6 +121,35 @@ pub fn input(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderErr
         )?,
     ];
     out.push(section_title(ui, theme, "辅码")?);
+    out.push(group(ui, theme, &rows)?);
+
+    let library = &page.settings.library;
+    let mut rows = Vec::new();
+    for (entry, removable) in library
+        .bundled_codes
+        .iter()
+        .map(|entry| (entry, false))
+        .chain(library.codes.iter().map(|entry| (entry, true)))
+    {
+        let toggle = toggle_disabled(Kind::CodeTable, &aux.disabled, &entry.stem);
+        rows.push(entry_row(
+            ui,
+            page,
+            Kind::CodeTable,
+            entry,
+            aux.is_enabled(&entry.stem),
+            toggle,
+            removable,
+        )?);
+    }
+    rows.push(import_row(
+        ui,
+        page,
+        Kind::CodeTable,
+        "导入码表",
+        "接受 Rime 的 .dict.yaml（词、码两列）与 .qj；码表要自己取得，青简不随包分发第三方形码表",
+    )?);
+    out.push(section_title(ui, theme, "码表")?);
     out.push(group(ui, theme, &rows)?);
     Ok(out)
 }

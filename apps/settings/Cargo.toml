@@ -26,6 +26,10 @@ jiff.workspace = true
 # 云服务页：测试连接；macOS 上密钥可能在配置同目录的 .env 里，读进来才知道「已设置」
 qingjian-predict.workspace = true
 qingjian-update.workspace = true
+# 词库页：读词库信息、导入词库与码表
+qingjian-dictionary.workspace = true
+# 导入时的文件选择窗口（与 Windows 旧设置程序同一个）
+rfd = "0.17"
 dotenvy.workspace = true
 tracing-subscriber.workspace = true
 

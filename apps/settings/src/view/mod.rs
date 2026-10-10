@@ -7,8 +7,10 @@ mod appearance;
 mod candidates;
 mod cloud;
 mod controls;
+mod dictionaries;
 mod input;
 mod language;
+mod lists;
 mod menus;
 pub(super) mod shortcuts;
 mod sidebar;
@@ -113,6 +115,7 @@ fn content(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
         PageId::Language => language::language(ui, page)?,
         PageId::Appearance => appearance::appearance(ui, page)?,
         PageId::Shortcuts => shortcuts::shortcuts(ui, page)?,
+        PageId::Dictionaries => dictionaries::dictionaries(ui, page)?,
         PageId::Cloud => cloud::cloud(ui, page)?,
         PageId::Advanced => advanced::advanced(ui, page)?,
         PageId::About => about::about(ui, page)?,

@@ -8,6 +8,8 @@ mod action;
 mod cloud;
 mod fonts;
 mod icons;
+mod import;
+mod library;
 mod message;
 mod page_id;
 mod palette;
