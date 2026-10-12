@@ -132,7 +132,15 @@ fn to_screen(rect: RECT) -> ScreenRect {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{Mutex, MutexGuard};
+
     use super::*;
+
+    /// 各测试都读写全局的 `LAST_LINE_HEIGHT`，并行跑会互相踩，拿这把锁排队。
+    fn serial() -> MutexGuard<'static, ()> {
+        static LOCK: Mutex<()> = Mutex::new(());
+        LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
 
     fn rect(top: i32, bottom: i32) -> RECT {
         RECT {
@@ -147,6 +155,7 @@ mod tests {
     // 摆放判定不再翻转。
     #[test]
     fn fragment_is_repaired_to_last_line_height() {
+        let _serial = serial();
         LAST_LINE_HEIGHT.store(0, Ordering::Relaxed);
         let mut orphan = rect(1063, 1064);
         assert!(!repair_degenerate(&mut orphan)); // 还没记过行高，照用残片
@@ -164,6 +173,7 @@ mod tests {
     // 整框矩形（整个编辑框那么高）不能当行高记，也不许被补。
     #[test]
     fn oversized_rect_is_neither_stored_nor_repaired() {
+        let _serial = serial();
         LAST_LINE_HEIGHT.store(0, Ordering::Relaxed);
         let mut whole = rect(0, 900);
         assert!(!repair_degenerate(&mut whole));
