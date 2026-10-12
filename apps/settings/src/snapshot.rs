@@ -108,6 +108,12 @@ pub fn run(config: Option<&Path>, directory: &Path) -> Result<(), Box<dyn std::e
         KeyCode::Escape,
         Modifiers::default(),
     )));
+    runner.handle(&Event::Text(TextInput::Insert("英语".to_owned())));
+    shot(&mut runner, "搜索「英语」：控件上的字也搜得到")?;
+    runner.handle(&Event::Key(KeyPress::new(
+        KeyCode::Escape,
+        Modifiers::default(),
+    )));
 
     click(
         &mut runner,

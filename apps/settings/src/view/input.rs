@@ -32,7 +32,15 @@ pub fn input(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderErr
     let mut out = Vec::new();
 
     let scheme = general.scheme();
-    let control = select(ui, page, Popup::Scheme, scheme.label(), 160.0, false)?;
+    let names: Vec<&str> = Scheme::ALL.iter().map(|scheme| scheme.label()).collect();
+    let control = select(
+        ui,
+        page,
+        Popup::Scheme,
+        (scheme.label(), &names),
+        160.0,
+        false,
+    )?;
     let mut rows = vec![
         SettingRow::new("拼音")
             .info("双拼与注音下 v、u、i 是按键，表达式和问字改用 Shift + V、Shift + U 进")

@@ -90,7 +90,7 @@ pub fn appearance(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Rend
     } else {
         general.font.as_str()
     };
-    let font = select(ui, page, Popup::Font, font_name, 180.0, !own)?;
+    let font = select(ui, page, Popup::Font, (font_name, &[]), 180.0, !own)?;
     let font = SettingRow::new("字体").control(font).build(ui, theme)?;
     let candidate = size(ui, page, SizeKind::Candidate, own)?;
     let candidate = SettingRow::new("候选字号")

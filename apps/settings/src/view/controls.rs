@@ -78,19 +78,18 @@ pub fn choice<T: Copy + PartialEq + 'static>(
         .build(ui, &page.theme, local, move |index| message(values[index]))
 }
 
-/// 下拉框，点开 `popup` 那个菜单。
+/// 下拉框，点开 `popup` 那个菜单；`options` 是菜单里的各项，只给搜索用。
 pub fn select(
     ui: &mut Ui<Message>,
     page: &Page,
     popup: Popup,
-    value: &str,
+    (value, options): (&str, &[&str]),
     width: f32,
     disabled: bool,
 ) -> Result<NodeId, RenderError> {
-    Select::new(value).width(width).disabled(disabled).build(
-        ui,
-        &page.theme,
-        anchor(popup),
-        Message::OpenMenu(popup),
-    )
+    Select::new(value)
+        .options(options)
+        .width(width)
+        .disabled(disabled)
+        .build(ui, &page.theme, anchor(popup), Message::OpenMenu(popup))
 }

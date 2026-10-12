@@ -28,7 +28,15 @@ pub fn candidates(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Rend
         .iter()
         .find(|(code, _)| *code == general.learning_language)
         .map_or(general.learning_language.as_str(), |(_, label)| label);
-    let language = select(ui, page, Popup::LearningLanguage, language, 120.0, false)?;
+    let names: Vec<&str> = LANGUAGES.iter().map(|(_, name)| *name).collect();
+    let language = select(
+        ui,
+        page,
+        Popup::LearningLanguage,
+        (language, &names),
+        120.0,
+        false,
+    )?;
     let rows = vec![
         SettingRow::new("每页候选数")
             .control(stepper)

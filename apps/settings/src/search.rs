@@ -23,6 +23,9 @@ pub struct Entry {
     pub title: String,
 
     pub detail: Option<String>,
+
+    /// 行里控件上的字与同义词。
+    pub keywords: Vec<String>,
 }
 
 #[derive(Default)]
@@ -48,27 +51,33 @@ impl Search {
         !self.query().is_empty()
     }
 
-    /// 按输入重筛：标题里有的排前面，说明里有的排后面，同一页同一标题只留一条。
+    /// 按输入重筛：标题里有的排最前，其次控件上的字与同义词，再次 ⓘ 说明；同一页同一标题只留一条。
     pub fn refresh(&mut self) {
         let query = self.query().to_lowercase();
         let Some(index) = self.index.as_ref().filter(|_| !query.is_empty()) else {
             self.hits.clear();
             return;
         };
-        let in_title = |entry: &&Entry| entry.title.to_lowercase().contains(&query);
-        let in_detail = |entry: &&Entry| {
-            entry
-                .detail
-                .as_ref()
-                .is_some_and(|detail| detail.to_lowercase().contains(&query))
+        let has = |text: &str| text.to_lowercase().contains(&query);
+        let rank = |entry: &Entry| {
+            if has(&entry.title) {
+                Some(0)
+            } else if entry.keywords.iter().any(|word| has(word)) {
+                Some(1)
+            } else if entry.detail.as_deref().is_some_and(has) {
+                Some(2)
+            } else {
+                None
+            }
         };
+        let mut ranked: Vec<(u8, &Entry)> = index
+            .iter()
+            .filter_map(|entry| rank(entry).map(|rank| (rank, entry)))
+            .collect();
+        // 稳定排序：同一档里保持页序
+        ranked.sort_by_key(|(rank, _)| *rank);
         let mut hits: Vec<Entry> = Vec::new();
-        let ordered = index.iter().filter(in_title).chain(
-            index
-                .iter()
-                .filter(|entry| !in_title(entry) && in_detail(entry)),
-        );
-        for entry in ordered {
+        for (_, entry) in ranked {
             let seen = hits
                 .iter()
                 .any(|hit| hit.page == entry.page && hit.title == entry.title);
@@ -109,17 +118,22 @@ mod tests {
             key: None,
             title: title.to_owned(),
             detail: detail.map(str::to_owned),
+            keywords: Vec::new(),
         }
     }
 
     #[test]
-    fn title_matches_come_before_detail_matches_and_duplicates_collapse() {
+    fn titles_rank_before_control_words_before_details_and_duplicates_collapse() {
         let mut search = Search {
             index: Some(vec![
                 entry(PageId::Cloud, "启用", Some("打字时向云端要候选")),
                 entry(PageId::Input, "云端词", None),
                 entry(PageId::Cloud, "云端词", None),
                 entry(PageId::Cloud, "云端词", Some("重复登记")),
+                Entry {
+                    keywords: vec!["云端模型".to_owned()],
+                    ..entry(PageId::Candidates, "联想", None)
+                },
             ]),
             ..Search::default()
         };
@@ -135,6 +149,7 @@ mod tests {
             [
                 (PageId::Input, "云端词"),
                 (PageId::Cloud, "云端词"),
+                (PageId::Candidates, "联想"),
                 (PageId::Cloud, "启用")
             ]
         );

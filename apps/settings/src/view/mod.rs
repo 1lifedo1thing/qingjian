@@ -132,6 +132,7 @@ pub fn index(settings: &Settings) -> Vec<Entry> {
             key: None,
             title: id.label().to_owned(),
             detail: None,
+            keywords: Vec::new(),
         });
         let mut ui = Ui::new(&interaction);
         if let Err(error) = page_children(&mut ui, &page, id) {
@@ -142,6 +143,7 @@ pub fn index(settings: &Settings) -> Vec<Entry> {
             key: Some(item.key),
             title: item.title,
             detail: item.detail,
+            keywords: item.keywords,
         }));
     }
     entries
