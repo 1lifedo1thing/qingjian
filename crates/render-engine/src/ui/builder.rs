@@ -27,7 +27,12 @@ pub struct Ui<'a, M> {
 
     /// 控件登记、还没被设置行收走的关键词与登记它的节点，见 [`Self::keyword`]。
     keywords: Vec<(NodeId, String)>,
+
+    /// ⓘ 的链接：说明末尾那行提示，与按行标题给出点击消息的函数，见 [`Self::info_links`]。
+    info_links: Option<(&'a str, InfoLinks<'a, M>)>,
 }
+
+type InfoLinks<'a, M> = Box<dyn Fn(&str) -> Option<M> + 'a>;
 
 impl<'a, M> Ui<'a, M> {
     pub fn new(interaction: &'a Interaction<M>) -> Self {
@@ -39,6 +44,7 @@ impl<'a, M> Ui<'a, M> {
             overlays: Vec::new(),
             searchables: Vec::new(),
             keywords: Vec::new(),
+            info_links: None,
         }
     }
 
@@ -94,6 +100,17 @@ impl<'a, M> Ui<'a, M> {
             detail: detail.map(str::to_owned),
             keywords: claimed,
         });
+    }
+
+    /// 设置行的 ⓘ 可点：`resolve` 按行标题给出点击消息（打开文档这类），给了的 ⓘ 点得动，说明末尾多一行 `hint`。
+    pub fn info_links(&mut self, hint: &'a str, resolve: impl Fn(&str) -> Option<M> + 'a) {
+        self.info_links = Some((hint, Box::new(resolve)));
+    }
+
+    /// 标题为 `title` 的行，ⓘ 的点击消息与提示。
+    pub fn info_link(&self, title: &str) -> Option<(M, &'a str)> {
+        let (hint, resolve) = self.info_links.as_ref()?;
+        resolve(title).map(|message| (message, *hint))
     }
 
     /// 控件上显示的字（`node` 是控件的根节点），装着它的设置行建好时收作搜索关键词。

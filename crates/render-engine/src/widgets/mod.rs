@@ -36,7 +36,7 @@ pub use checkbox::Checkbox;
 pub use colors::WidgetColors;
 pub use dialog::dialog;
 pub use group::{group, section_title};
-pub use info::info;
+pub use info::{info, info_with_link};
 pub use key_recorder::KeyRecorder;
 pub use menu::Menu;
 pub use nav_item::NavItem;

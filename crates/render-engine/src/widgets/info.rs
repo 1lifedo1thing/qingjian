@@ -1,5 +1,6 @@
 //! 悬停说明：标题旁一个 ⓘ，指针停在上面（或键盘把焦点移过来）时在它下面浮出一段说明。
 //! 说明是浮层（[`crate::Ui::overlay`]），不被滚动区裁掉；位置贴着 ⓘ 上一帧的位置，第一帧不出。
+//! 带链接的（[`info_with_link`]）点一下（或聚焦时按空格）产出消息，说明末尾多一行次要色的提示。
 
 use std::hash::Hash;
 use std::sync::Arc;
@@ -9,7 +10,7 @@ use taffy::{LengthPercentageAuto, NodeId, Position, Rect, Size, Style};
 use super::WidgetTheme;
 use super::info_mark::InfoMark;
 use super::paragraph::paragraph;
-use super::parts::{centered, focus_ring, padding, solid};
+use super::parts::{centered, column, focus_ring, padding, solid};
 use crate::error::RenderError;
 use crate::scene::{Effect, EffectKind, Visual};
 use crate::ui::{Interact, Ui};
@@ -22,6 +23,17 @@ pub fn info<M>(
     theme: &WidgetTheme,
     local: impl Hash,
     text: &str,
+) -> Result<NodeId, RenderError> {
+    info_with_link(ui, theme, local, text, None)
+}
+
+/// 同 [`info`]，`link` 是点击消息与说明末尾的提示。
+pub fn info_with_link<M>(
+    ui: &mut Ui<M>,
+    theme: &WidgetTheme,
+    local: impl Hash,
+    text: &str,
+    link: Option<(M, &str)>,
 ) -> Result<NodeId, RenderError> {
     let key = ui.key(local);
     let state = ui.state(key);
@@ -41,9 +53,18 @@ pub fn info<M>(
         },
         &children,
     )?;
-    ui.interact(node, key, Interact::new().focusable());
+    let (message, hint) = link.unzip();
+    let mut interact = Interact::new().focusable();
+    if let Some(message) = message {
+        interact = interact.on_click(message);
+    }
+    ui.interact(node, key, interact);
     if open && let Some((x, y, _, height)) = ui.rect(key) {
-        let note = paragraph(ui, theme, text, Some(colors.text))?;
+        let mut lines = vec![paragraph(ui, theme, text, Some(colors.text))?];
+        if let Some(hint) = hint {
+            lines.push(paragraph(ui, theme, hint, Some(colors.secondary))?);
+        }
+        let note = ui.scene().node(column(theme, 4.0), Visual::Group, &lines)?;
         let bubble = ui.scene().node(
             Style {
                 position: Position::Absolute,

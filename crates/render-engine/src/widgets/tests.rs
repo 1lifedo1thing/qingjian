@@ -309,3 +309,41 @@ fn rows_claim_the_words_on_their_own_controls() {
     assert_eq!(found[0].keywords, ["一", "二", "数目"]);
     assert_eq!(found[1].keywords, ["英语", "英语", "日语"]);
 }
+
+#[test]
+fn info_marks_with_a_link_send_it_when_clicked() {
+    let mut text = TextPainter::new(FontLibrary::system("en").unwrap());
+    let mut interaction = Interaction::<Message>::new();
+    let theme = WidgetTheme::new(WidgetColors::LIGHT, 1.0);
+    let mut ui = Ui::new(&interaction);
+    ui.info_links("点击查看文档", |title| {
+        (title == "有链接").then_some(Message::Toggle)
+    });
+    let linked = SettingRow::new("有链接")
+        .info("说明")
+        .build(&mut ui, &theme)
+        .unwrap();
+    let plain = SettingRow::new("没链接")
+        .info("说明")
+        .build(&mut ui, &theme)
+        .unwrap();
+    let root = ui
+        .scene()
+        .node(
+            Style {
+                flex_direction: FlexDirection::Column,
+                ..Style::default()
+            },
+            Visual::Group,
+            &[linked, plain],
+        )
+        .unwrap();
+    let (mut scene, elements) = ui.finish();
+    layout(&mut scene, root, &mut text);
+    interaction.attach(&scene, root, elements).unwrap();
+    assert_eq!(
+        click(&mut interaction, Key::ROOT.child(("info", "有链接"))),
+        [Message::Toggle]
+    );
+    assert!(click(&mut interaction, Key::ROOT.child(("info", "没链接"))).is_empty());
+}

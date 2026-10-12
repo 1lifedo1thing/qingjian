@@ -6,7 +6,7 @@ use std::time::Duration;
 use taffy::{AlignItems, JustifyContent, LengthPercentageAuto, NodeId, Position, Rect, Style};
 
 use super::WidgetTheme;
-use super::info::info;
+use super::info::info_with_link;
 use super::parts::{column, label, padding, row, solid};
 use crate::animation::Easing;
 use crate::error::RenderError;
@@ -97,7 +97,8 @@ impl<'a> SettingRow<'a> {
         let colors = &theme.colors;
         let mut title = label(ui, theme, self.title, theme.font.size, 500, colors.text)?;
         if let Some(text) = self.info {
-            let mark = info(ui, theme, ("info", self.title), text)?;
+            let link = ui.info_link(self.title);
+            let mark = info_with_link(ui, theme, ("info", self.title), text, link)?;
             title = ui.scene().node(
                 Style {
                     align_items: Some(AlignItems::CENTER),
