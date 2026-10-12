@@ -20,12 +20,13 @@ mod themes;
 
 use render_engine::taffy::{Dimension, FlexDirection, LengthPercentage, NodeId, Rect, Size, Style};
 use render_engine::{
-    Interact, KeyCode, RenderError, ScrollArea, TITLEBAR, Ui, Visual, WidgetTheme,
+    Interact, Interaction, KeyCode, RenderError, ScrollArea, TITLEBAR, Ui, Visual, WidgetTheme,
 };
 
 use crate::message::Message;
 use crate::page_id::PageId;
 use crate::palette::{DARK, LIGHT, Palette};
+use crate::search::Entry;
 use crate::settings::Settings;
 
 /// 右边内容区左右的边距（点）。
@@ -114,8 +115,44 @@ pub fn view(
     Ok(root)
 }
 
-fn content(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
-    let children = match page.settings.page {
+/// 搜索索引：离屏把每页建一遍，收各页登记的可搜索项（key 与真建时一致），再加上页名本身。
+pub fn index(settings: &Settings) -> Vec<Entry> {
+    let interaction = Interaction::new();
+    let page = Page {
+        settings,
+        theme: WidgetTheme::new(LIGHT.widgets, 1.0),
+        palette: &LIGHT,
+        scale: 1.0,
+        content_width: 600.0,
+    };
+    let mut entries = Vec::new();
+    for id in PageId::ALL {
+        entries.push(Entry {
+            page: id,
+            key: None,
+            title: id.label().to_owned(),
+            detail: None,
+        });
+        let mut ui = Ui::new(&interaction);
+        if let Err(error) = page_children(&mut ui, &page, id) {
+            tracing::warn!(%error, page = id.label(), "建搜索索引时这页建失败");
+        }
+        entries.extend(ui.take_searchables().into_iter().map(|item| Entry {
+            page: id,
+            key: Some(item.key),
+            title: item.title,
+            detail: item.detail,
+        }));
+    }
+    entries
+}
+
+fn page_children(
+    ui: &mut Ui<Message>,
+    page: &Page,
+    id: PageId,
+) -> Result<Vec<NodeId>, RenderError> {
+    Ok(match id {
         PageId::Input => input::input(ui, page)?,
         PageId::Candidates => candidates::candidates(ui, page)?,
         PageId::Language => language::language(ui, page)?,
@@ -127,7 +164,11 @@ fn content(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
         PageId::Stats => stats::stats(ui, page)?,
         PageId::Advanced => advanced::advanced(ui, page)?,
         PageId::About => about::about(ui, page)?,
-    };
+    })
+}
+
+fn content(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
+    let children = page_children(ui, page, page.settings.page)?;
     let column = ui.scene().node(
         Style {
             flex_direction: FlexDirection::Column,

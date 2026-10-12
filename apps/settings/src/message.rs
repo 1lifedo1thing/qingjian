@@ -94,6 +94,14 @@ pub enum Message {
     CheckUpdate,
     /// 展开 / 收起「关于」页的数据来源。
     ToggleSources,
+    /// 搜索框里打字。
+    Search(Edit),
+    /// 搜索框里回车：跳到第一条结果。
+    SearchFirst,
+    /// 搜索框里 Esc：清空，回到导航。
+    ClearSearch,
+    /// 点了第几条搜索结果。
+    Jump(usize),
     Quit,
 }
 

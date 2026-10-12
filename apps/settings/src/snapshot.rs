@@ -4,7 +4,9 @@ use std::path::Path;
 use std::time::Instant;
 
 use render_engine::tiny_skia::IntRect;
-use render_engine::{App, Event, FontLibrary, Key, Runner};
+use render_engine::{
+    App, Event, FontLibrary, Key, KeyCode, KeyPress, Modifiers, Runner, TextInput,
+};
 
 use crate::page_id::PageId;
 use crate::settings::Settings;
@@ -93,6 +95,19 @@ pub fn run(config: Option<&Path>, directory: &Path) -> Result<(), Box<dyn std::e
     click(&mut runner, Key::ROOT.child("nav").child(PageId::Advanced))?;
     click(&mut runner, Key::ROOT.child("clear-input-log"))?;
     shot(&mut runner, "高级：点一下清空，按钮变成确认")?;
+
+    click(&mut runner, Key::ROOT.child("search"))?;
+    runner.handle(&Event::Text(TextInput::Insert("模糊".to_owned())));
+    shot(&mut runner, "搜索「模糊」：侧栏换成结果")?;
+    runner.handle(&Event::Key(KeyPress::new(
+        KeyCode::Enter,
+        Modifiers::default(),
+    )));
+    shot(&mut runner, "回车：跳到第一条，那一行滚进视野并标出来")?;
+    runner.handle(&Event::Key(KeyPress::new(
+        KeyCode::Escape,
+        Modifiers::default(),
+    )));
 
     click(
         &mut runner,

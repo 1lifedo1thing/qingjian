@@ -8,7 +8,7 @@ use render_engine::taffy::{
 };
 use render_engine::{
     BoxPaint, Fill, FontSpec, FontWeight, NavItem, RenderError, SearchField, TITLEBAR, TextStyle,
-    Ui, Visual,
+    Ui, Visual, paragraph,
 };
 
 use super::Page;
@@ -22,23 +22,22 @@ pub const WIDTH: f32 = 216.0;
 pub fn sidebar(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
     let theme = &page.theme;
     let brand = brand(ui, page)?;
-    let search = SearchField::new("搜索")
+    let search = SearchField::new(&page.settings.search.edit)
+        .placeholder("搜索")
         .icon(Arc::new(Glyph::Search))
-        .build(ui, theme, "search")?;
-    let items = ui.scope("nav", |ui| -> Result<Vec<NodeId>, RenderError> {
-        let mut items = Vec::new();
-        for id in PageId::ALL {
-            let selected = id == page.settings.page;
-            let mut item = NavItem::new(id.label())
-                .icon(Arc::new(id.glyph()))
-                .selected(selected);
-            if selected {
-                item = item.accessory(joint(ui, page)?);
-            }
-            items.push(item.build(ui, theme, id, Message::Page(id))?);
-        }
-        Ok(items)
-    })?;
+        .build(
+            ui,
+            theme,
+            "search",
+            Message::Search,
+            Some(Message::SearchFirst),
+            Some(Message::ClearSearch),
+        )?;
+    let items = if page.settings.search.active() {
+        results(ui, page)?
+    } else {
+        navigation(ui, page)?
+    };
     let list = ui.scene().node(
         Style {
             flex_direction: FlexDirection::Column,
@@ -73,6 +72,50 @@ pub fn sidebar(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError>
         Visual::solid(page.palette.sidebar, 0.0),
         &[brand, search, list],
     )
+}
+
+/// 各页的导航项，当前页左边叠竹节。
+fn navigation(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderError> {
+    let theme = &page.theme;
+    ui.scope("nav", |ui| -> Result<Vec<NodeId>, RenderError> {
+        let mut items = Vec::new();
+        for id in PageId::ALL {
+            let selected = id == page.settings.page;
+            let mut item = NavItem::new(id.label())
+                .icon(Arc::new(id.glyph()))
+                .selected(selected);
+            if selected {
+                item = item.accessory(joint(ui, page)?);
+            }
+            items.push(item.build(ui, theme, id, Message::Page(id))?);
+        }
+        Ok(items)
+    })
+}
+
+/// 搜索结果：图标是所在页的，点了跳过去；一条都没有时说一声。
+fn results(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderError> {
+    let theme = &page.theme;
+    let hits = &page.settings.search.hits;
+    if hits.is_empty() {
+        return Ok(vec![paragraph(
+            ui,
+            theme,
+            "没有找到",
+            Some(theme.colors.secondary),
+        )?]);
+    }
+    ui.scope("hits", |ui| -> Result<Vec<NodeId>, RenderError> {
+        let mut items = Vec::new();
+        for (index, hit) in hits.iter().enumerate() {
+            items.push(
+                NavItem::new(&hit.title)
+                    .icon(Arc::new(hit.page.glyph()))
+                    .build(ui, theme, index, Message::Jump(index))?,
+            );
+        }
+        Ok(items)
+    })
 }
 
 /// logo 加宋体的「青简」。

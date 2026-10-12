@@ -4,12 +4,14 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Instant;
 
 use qingjian_platform::{Appearance, Config, ConfigError, LayoutMode};
 use qingjian_render::{TextSizes, Theme, ThemeLibrary};
 use render_engine::taffy::NodeId;
 use render_engine::{
-    App, FamilyId, FamilyList, FamilyTable, RenderError, SvgImage, TextEdit, TextPainter, Ui, Waker,
+    App, FamilyId, FamilyList, FamilyTable, Key, RenderError, SvgImage, TextEdit, TextPainter, Ui,
+    Waker,
 };
 
 use crate::action::Action;
@@ -20,6 +22,7 @@ use crate::message::{FieldId, Message, Popup, SizeKind};
 use crate::page_id::PageId;
 use crate::phrases::PhraseEditor;
 use crate::previews::Previews;
+use crate::search::{SPOTLIGHT, Search};
 use crate::shortcut::Shortcut;
 use crate::stats::Stats;
 use crate::update::UpdateCheck;
@@ -84,6 +87,8 @@ pub struct Settings {
 
     /// 「关于」页的数据来源展开着。
     pub sources_open: bool,
+
+    pub search: Search,
 }
 
 impl Settings {
@@ -123,6 +128,7 @@ impl Settings {
             phrase: None,
             stats: None,
             waker: None,
+            search: Search::default(),
         }
         .with_fields())
     }
@@ -140,7 +146,8 @@ impl Settings {
         let value = match id {
             FieldId::BaseUrl => predict.base_url.clone(),
             FieldId::Model => predict.model.clone(),
-            FieldId::ApiKey | FieldId::PhraseCode | FieldId::PhraseText => return,
+            FieldId::ApiKey => String::new(),
+            FieldId::PhraseCode | FieldId::PhraseText => return,
         };
         self.fields.insert(id, TextEdit::new(value));
     }
@@ -180,6 +187,21 @@ impl Settings {
             }
         }
         self.reset_field(id);
+    }
+
+    /// 醒目标出跳到的那一行，到时间叫醒窗口撤掉（撤掉时底色淡出）。
+    fn spotlight(&mut self, key: Option<Key>) {
+        let Some(key) = key else {
+            self.search.spotlight = None;
+            return;
+        };
+        self.search.spotlight = Some((key, Instant::now() + SPOTLIGHT));
+        if let Some(waker) = self.waker.clone() {
+            std::thread::spawn(move || {
+                std::thread::sleep(SPOTLIGHT);
+                waker.wake();
+            });
+        }
     }
 
     /// 导入完了：之前关掉过的同名词库重新打开，重扫清单，把结果显示出来。
@@ -518,6 +540,27 @@ impl App for Settings {
                 }
             }
             Message::ToggleSources => self.sources_open = !self.sources_open,
+            Message::Search(edit) => {
+                self.search.edit.apply(&edit);
+                if !self.search.active() {
+                    self.search.index = None;
+                } else if self.search.index.is_none() {
+                    self.search.index = Some(view::index(self));
+                }
+                self.search.refresh();
+            }
+            Message::SearchFirst => {
+                if !self.search.hits.is_empty() {
+                    return self.update(Message::Jump(0));
+                }
+            }
+            Message::ClearSearch => self.search.clear(),
+            Message::Jump(index) => {
+                if let Some(hit) = self.search.hits.get(index).cloned() {
+                    self.update(Message::Page(hit.page));
+                    self.spotlight(hit.key);
+                }
+            }
             Message::Quit => return false,
         }
         true
@@ -538,7 +581,7 @@ impl App for Settings {
     }
 
     fn wake(&mut self) -> bool {
-        let mut changed = false;
+        let mut changed = self.search.expire(Instant::now());
         if let Some(text) = self.cloud_test.finish() {
             self.notice = Some(("cloud", text));
             changed = true;
@@ -556,6 +599,10 @@ impl App for Settings {
 
     fn set_system_dark(&mut self, dark: bool) {
         self.system_dark = dark;
+    }
+
+    fn spotlight(&self) -> Option<Key> {
+        self.search.spotlight.map(|(key, _)| key)
     }
 }
 
