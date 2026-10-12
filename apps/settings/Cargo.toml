@@ -1,16 +1,11 @@
 [package]
 name = "qingjian-settings"
-description = "三平台共用的设置程序：画在 render-engine 上，读写同一份 config.toml；成形后替掉 macOS 偏好设置与 Windows 设置"
+description = "三平台共用的设置程序：画在 render-engine 上，读写输入法同一份 config.toml"
 version = "0.2.1-dev"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 publish = false
-
-# 旧的 Windows 设置程序占了 qingjian-settings 这个名字，替掉它之前先叫这个
-[[bin]]
-name = "qingjian-settings-ui"
-path = "src/main.rs"
 
 [dependencies]
 render-engine = { workspace = true, features = ["host"] }
@@ -35,6 +30,22 @@ qingjian-translate.workspace = true
 rfd = "0.17"
 dotenvy.workspace = true
 tracing-subscriber.workspace = true
+tracing-appender.workspace = true
+
+[dev-dependencies]
+toml.workspace = true
+
+# 只开一个窗口：第二次启动把已开的带到前台
+[target."cfg(windows)".dependencies]
+windows = { version = "0.62.2", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Threading",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[target."cfg(windows)".build-dependencies]
+winresource = "0.1.31"
 
 [lints]
 workspace = true

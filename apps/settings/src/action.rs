@@ -86,7 +86,7 @@ fn open_dir(dir: Option<PathBuf>) -> Result<String, String> {
 }
 
 /// 交给系统打开（目录、网址都行）。
-fn open(target: &str) -> Result<(), String> {
+pub fn open(target: &str) -> Result<(), String> {
     if cfg!(windows) {
         spawn("explorer.exe", &[target])
     } else if cfg!(target_os = "macos") {

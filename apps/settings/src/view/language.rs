@@ -55,6 +55,7 @@ pub fn language(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Render
     )?;
     rows.push(
         SettingRow::new("英文模式也给候选")
+            .info("Tab 或方向键选词，不选时跟直接打字一样；下面勾上就只在浏览器、聊天、文档类应用里给")
             .control(switch)
             .below(only)
             .build(ui, theme)?,

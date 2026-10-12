@@ -555,6 +555,11 @@ impl App for Settings {
                 }
             }
             Message::ClearSearch => self.search.clear(),
+            Message::OpenDoc(url) => {
+                if let Err(error) = crate::action::open(&url) {
+                    tracing::warn!(%error, url, "打开文档失败");
+                }
+            }
             Message::Jump(index) => {
                 if let Some(hit) = self.search.hits.get(index).cloned() {
                     self.update(Message::Page(hit.page));

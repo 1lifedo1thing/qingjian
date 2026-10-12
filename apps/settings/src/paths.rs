@@ -42,6 +42,44 @@ pub fn input_log() -> Option<PathBuf> {
     user_dir().map(|dir| dir.join("input-log.jsonl"))
 }
 
+/// macOS 上找随包数据的几个 `Resources` 目录，按先后试：自己所在的 .app 往外每一层（设置程序装在
+/// `Qingjian.app/Contents/Applications/` 里，数据在外层），再是装好的输入法。别的平台为空，走 `bundled_resource`。
+pub fn mac_resources() -> Vec<PathBuf> {
+    if !cfg!(target_os = "macos") {
+        return Vec::new();
+    }
+    let mut dirs: Vec<PathBuf> = std::env::current_exe()
+        .ok()
+        .map(|exe| {
+            exe.ancestors()
+                .filter(|dir| dir.extension().is_some_and(|ext| ext == "app"))
+                .map(|app| app.join("Contents/Resources"))
+                .collect()
+        })
+        .unwrap_or_default();
+    let installed = "Library/Input Methods/Qingjian.app/Contents/Resources";
+    if let Some(home) = home() {
+        dirs.push(home.join(installed));
+    }
+    dirs.push(PathBuf::from("/").join(installed));
+    dirs
+}
+
+/// 随包资源（相对随包根，如 `data/generated/dicts`），找法同 Linux Server：`QINGJIAN_RESOURCES`，
+/// 再 `<前缀>/share/qingjian/resources`（Linux 装机布局），再 exe 同级或开发布局（`qingjian_platform::resources`）。
+pub fn bundled(rel: &str) -> Option<PathBuf> {
+    let installed = std::env::current_exe()
+        .ok()
+        .and_then(|exe| Some(exe.parent()?.parent()?.join("share/qingjian/resources")));
+    std::env::var_os("QINGJIAN_RESOURCES")
+        .map(PathBuf::from)
+        .into_iter()
+        .chain(installed)
+        .map(|root| root.join(rel))
+        .find(|path| path.exists())
+        .or_else(|| qingjian_platform::resources::bundled_resource(rel))
+}
+
 fn home() -> Option<PathBuf> {
     std::env::var_os("HOME").map(PathBuf::from)
 }

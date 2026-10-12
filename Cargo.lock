@@ -3587,9 +3587,13 @@ dependencies = [
  "qingjian-update",
  "render-engine",
  "rfd",
+ "toml",
  "toml_edit",
  "tracing",
+ "tracing-appender",
  "tracing-subscriber",
+ "windows",
+ "winresource",
 ]
 
 [[package]]

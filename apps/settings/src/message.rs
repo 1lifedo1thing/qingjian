@@ -102,6 +102,8 @@ pub enum Message {
     ClearSearch,
     /// 点了第几条搜索结果。
     Jump(usize),
+    /// 点了 ⓘ：打开这个网址（官网文档的一段）。
+    OpenDoc(String),
     Quit,
 }
 

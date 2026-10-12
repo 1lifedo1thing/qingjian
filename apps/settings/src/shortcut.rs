@@ -14,6 +14,15 @@ pub enum Shortcut {
 }
 
 impl Shortcut {
+    #[cfg(test)]
+    pub const ALL: [Self; 5] = [
+        Self::Translation,
+        Self::TranslationSecond,
+        Self::DeleteCandidate,
+        Self::TranslateSelection,
+        Self::AuxCodeKey,
+    ];
+
     pub fn title(self) -> &'static str {
         match self {
             Self::Translation => "上屏第一个译词",

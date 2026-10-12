@@ -51,9 +51,10 @@ qingjian/
 │
 ├── apps/
 │   ├── cli/                    # 测试工具：查询、逐键计时、输入日志回放评测、整句评测
-│   ├── macos/                  # IMK 输入法壳（app / host / imk / candidates / menubar / preferences）
+│   ├── settings/               # 设置程序：三平台共用，画在 render-engine 上，读写同一份配置
+│   ├── macos/                  # IMK 输入法壳（app / host / imk / candidates / menubar / preferences（旧版设置））
 │   ├── windows/                # 同一个产品的四个 package：server（IPC 分派 + Engine + 命名管道 + 自绘候选窗）、
-│   │                           #   tsf（TSF 文本服务 DLL：COM 链路 + 连 Server 的管道客户端）、settings（WinUI 3）、installer
+│   │                           #   tsf（TSF 文本服务 DLL：COM 链路 + 连 Server 的管道客户端）、settings（旧版设置，WinUI 3）、installer
 │   └── linux/                  # server（Engine + Unix socket）+ fcitx5（C++ 插件）+ scripts
 │
 ├── tools/
@@ -351,7 +352,7 @@ CC-CEDICT 表（`dict-convert cedict`）保留为备用来源，覆盖面广但�
   `preedit/`（`mod.rs` / `segment.rs` / `style.rs`）是拼音行的分段模型（由 Core 的 `MarkedSegment` 转来），`frame.rs` 是一帧的数据；
   `menubar/`：`indicator.rs` 是菜单栏的中 / 英 NSStatusItem（输入源图标没法动态换，只能自己放一个），
   `menu.rs` / `action.rs` / `target.rs` 是输入法菜单；
-  `preferences/`：偏好设置窗口（`window.rs` 手排控件、`layout.rs` 逐页排版、`panel.rs` 关窗时切回激活策略、`setting/`（`Setting` 与 `SettingValue`）控件 ↔ 配置项、
+  `preferences/`：旧版偏好设置窗口（菜单「旧版设置…」，下个版本删；`window.rs` 手排控件、`layout.rs` 逐页排版、`panel.rs` 关窗时切回激活策略、`setting/`（`Setting` 与 `SettingValue`）控件 ↔ 配置项、
   `target.rs` 一个 `changed:` 选择器、`key_recorder.rs` 快捷键录制按钮、`usage_page.rs` 「统计」页（数字格子与「几本《某书》」文案）、`about.rs` 「关于」页文案、`edit_menu.rs` 只有编辑项的主菜单、`file_dialog.rs` 导入词库的打开面板）；
   `app/`：`paths.rs` 定位 `.app/Contents/Resources/`（词库、随包领域词库 `dicts/`）与 `~/Library/Application Support/Qingjian/`（用户数据），
   `settings.rs` 是配置文件的运行时状态，`logging/` 只写 `~/Library/Logs/Qingjian/`（自己的 `LogFile` 按天分文件、留 7 天、被删重建），`bundle.rs` 读 Info.plist，

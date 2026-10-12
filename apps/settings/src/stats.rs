@@ -1,7 +1,7 @@
 //! 统计页的数：输入量（`usage.tsv`）与词汇（`user-vocab.tsv`，有等级表时按级分）。输入法记、这里只读，进统计页时读一次。
 //! 还有几种给人看的写法：千位分隔、万 / 亿字、跟一本书比。
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use qingjian_core::{Language, UsageSummary, VocabularySummary, book_scale};
 use qingjian_learning::{UsageStats, VocabularyBook};
@@ -52,24 +52,14 @@ fn language_name(language: Language) -> &'static str {
 /// 词汇等级表：macOS 在 `Qingjian.app/Contents/Resources/`，其他平台在随包根的 `assets/levels/`。
 fn level_table(language: Language) -> Option<PathBuf> {
     let name = format!("levels-{}.tsv", language.code());
-    if cfg!(target_os = "macos") {
-        let app = "Library/Input Methods/Qingjian.app/Contents/Resources";
-        let mut candidates: Vec<PathBuf> = Vec::new();
-        if let Some(contents) = std::env::current_exe()
-            .ok()
-            .and_then(|exe| exe.parent()?.parent().map(Path::to_owned))
-        {
-            candidates.push(contents.join("Resources").join(&name));
-        }
-        if let Some(home) = std::env::var_os("HOME") {
-            candidates.push(PathBuf::from(home).join(app).join(&name));
-        }
-        candidates.push(PathBuf::from("/").join(app).join(&name));
-        if let Some(found) = candidates.into_iter().find(|path| path.is_file()) {
-            return Some(found);
-        }
+    let found = crate::paths::mac_resources()
+        .into_iter()
+        .map(|dir| dir.join(&name))
+        .find(|path| path.is_file());
+    if found.is_some() {
+        return found;
     }
-    qingjian_platform::resources::bundled_resource(&format!("assets/levels/{name}"))
+    crate::paths::bundled(&format!("assets/levels/{name}"))
 }
 
 /// 千位分隔：`12345` → `12,345`。

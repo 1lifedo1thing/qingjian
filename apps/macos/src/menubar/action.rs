@@ -13,7 +13,10 @@ pub enum MenuAction {
     /// 开关一条模糊音规则，值是 [`FuzzyRules::NAMES`] 的下标。
     ToggleFuzzy(usize),
 
-    /// 打开偏好设置窗口。
+    /// 打开设置程序（装在 `Qingjian.app/Contents/Applications/` 里的 `QingjianSettings.app`）。
+    OpenSettings,
+
+    /// 打开旧版偏好设置窗口（留一个版本作回退）。
     OpenPreferences,
 
     /// 在访达里打开日志目录。
@@ -30,6 +33,7 @@ impl MenuAction {
             Self::OpenPreferences => 2,
             Self::OpenLogs => 3,
             Self::OpenDownload => 4,
+            Self::OpenSettings => 5,
             Self::ToggleFuzzy(index) => FUZZY_TAG_BASE + index as NSInteger,
         }
     }
@@ -40,6 +44,7 @@ impl MenuAction {
             2 => Self::OpenPreferences,
             3 => Self::OpenLogs,
             4 => Self::OpenDownload,
+            5 => Self::OpenSettings,
             _ => {
                 let index = usize::try_from(tag.checked_sub(FUZZY_TAG_BASE)?).ok()?;
                 (index < FuzzyRules::NAMES.len()).then_some(Self::ToggleFuzzy(index))?
@@ -56,6 +61,7 @@ mod tests {
     fn tags_round_trip() {
         let all = [
             MenuAction::ToggleCloud,
+            MenuAction::OpenSettings,
             MenuAction::OpenPreferences,
             MenuAction::OpenLogs,
             MenuAction::OpenDownload,

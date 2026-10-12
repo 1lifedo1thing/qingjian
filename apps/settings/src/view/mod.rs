@@ -74,6 +74,10 @@ pub fn view(
         scale,
         content_width: width as f32 - (sidebar::WIDTH + CONTENT_PADDING * 2.0) * scale,
     };
+    let current = settings.page;
+    ui.info_links("点一下 ⓘ 打开文档", move |title| {
+        crate::docs::link(current, title).map(Message::OpenDoc)
+    });
     let sidebar = sidebar::sidebar(ui, &page)?;
     let content = content(ui, &page)?;
     let mut children = vec![sidebar, content];

@@ -143,23 +143,9 @@ fn entry(kind: Kind, stem: String, path: &Path) -> Entry {
 /// macOS 在 `Qingjian.app/Contents/Resources/`（设置程序将来也装在包里，先找自己所在的包，再找装好的输入法），
 /// 其他平台在随包根的 `data/generated/`；都找不到时用开发布局（仓库的 `data/generated/`）。
 fn bundled_dir(name: &str) -> Option<PathBuf> {
-    let mut candidates = Vec::new();
-    if cfg!(target_os = "macos") {
-        if let Some(contents) = std::env::current_exe()
-            .ok()
-            .and_then(|exe| exe.parent()?.parent().map(Path::to_owned))
-        {
-            candidates.push(contents.join("Resources").join(name));
-        }
-        let app = "Library/Input Methods/Qingjian.app/Contents/Resources";
-        if let Some(home) = std::env::var_os("HOME") {
-            candidates.push(PathBuf::from(home).join(app).join(name));
-        }
-        candidates.push(PathBuf::from("/").join(app).join(name));
-    } else if let Some(root) = std::env::var_os("QINGJIAN_RESOURCES") {
-        candidates.push(PathBuf::from(root).join("data/generated").join(name));
-    }
-    candidates.into_iter().find(|dir| dir.is_dir()).or_else(|| {
-        qingjian_platform::resources::bundled_resource(&format!("data/generated/{name}"))
-    })
+    crate::paths::mac_resources()
+        .into_iter()
+        .map(|dir| dir.join(name))
+        .find(|dir| dir.is_dir())
+        .or_else(|| crate::paths::bundled(&format!("data/generated/{name}")))
 }
