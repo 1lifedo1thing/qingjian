@@ -108,6 +108,11 @@ impl<M> Interaction<M> {
     }
 
     /// 元素上一帧在根坐标里的矩形（左、上、宽、高，像素）：弹出层定位、测试里找点击位置用。
+    /// 这一帧所有元素的 key，按树序（自动化测试逐个点控件用）。
+    pub fn keys(&self) -> impl Iterator<Item = Key> + '_ {
+        self.elements.iter().map(|element| element.key)
+    }
+
     pub fn rect(&self, key: Key) -> Option<(f32, f32, f32, f32)> {
         self.element(key).map(Element::rect)
     }
