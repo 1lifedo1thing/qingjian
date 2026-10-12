@@ -1,8 +1,15 @@
 # 德语学习语言支持 · 设计 note
 
 **日期**：2026-10-08
-**状态**：DRAFT（待批准；本阶段只做本地测试，不提 PR）
+**状态**：已废弃（SUPERSEDED，2026-10-10）——**本 note 描述的本地三层管线未实施，保留作文档存档。**
 **先例**：西班牙语 #48（代码接线）/ #49（数据与生成脚本）/ `b423a4e`（随包）
+
+> **实施情况（以本节为准）**：最终采用方案 D——复用 `tools/gloss-gen` 的 LLM 多语言管线
+> （`--languages de`，deepseek-flash）生成 `glossary-de.tsv`，名词冠词经 Wiktionary 快照
+> 闸门校验（一致率 98.4%，≥98% 发布），见 #511（核心接线）与 #535（释义数据与生成工具）、
+> 讨论见 #509。下文的 official/manual/ai 三层分片、Azure 机翻、`--fragments-dir` /
+> `QINGJIAN_DE_FRAGMENTS_DIR`、provenance 与本地 CEFR 等级编排**均未实现、相关脚本不入库**；
+> 首版也不随包 `levels-de`（与越南语首版一致）。以下正文为当时的原始方案，未随实施更新。
 
 ## 1. Problem Statement & User Value
 
