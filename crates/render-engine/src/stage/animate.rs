@@ -71,7 +71,16 @@ impl Stage {
         keyed
             .iter()
             .filter_map(|keyed| {
-                let from = *shown.get(&keyed.key)?;
+                let mut from = *shown.get(&keyed.key)?;
+                let to = keyed.placement;
+                if keyed.fade {
+                    (from.x, from.y, from.width, from.height) = (to.x, to.y, to.width, to.height);
+                } else {
+                    // 参照祖先挪了多少，起点就跟着挪多少：只滑相对它的那段
+                    let old = last.anchors.get(&keyed.key).copied().unwrap_or_default();
+                    from.x += keyed.anchor.0 - old.0;
+                    from.y += keyed.anchor.1 - old.1;
+                }
                 (from != keyed.placement && !keyed.duration.is_zero()).then(|| Transition {
                     node: keyed.node,
                     key: keyed.key.clone(),

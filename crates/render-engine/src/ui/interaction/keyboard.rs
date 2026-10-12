@@ -79,7 +79,8 @@ impl<M: Clone> Interaction<M> {
         };
         let key = self.elements[candidates[next]].key;
         let moved = self.set_focus(Some(key), response);
-        let changed = moved || !self.focus_visible;
+        let scrolled = self.reveal(key, 0.0);
+        let changed = moved || scrolled || !self.focus_visible;
         self.focus_visible = true;
         changed
     }

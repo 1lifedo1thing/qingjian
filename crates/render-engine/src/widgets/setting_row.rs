@@ -1,14 +1,20 @@
 //! 一行设置：左边标题（可带一行说明、一个悬停说明的 ⓘ），右边控件，控件下面还能挂附加项（勾选框、链接）。
 //! 控件很宽的（主题卡片）用 [`SettingRow::stacked`] 放到标题下面。
 
-use taffy::{AlignItems, JustifyContent, NodeId, Style};
+use std::time::Duration;
+
+use taffy::{AlignItems, JustifyContent, LengthPercentageAuto, NodeId, Position, Rect, Style};
 
 use super::WidgetTheme;
 use super::info::info;
-use super::parts::{column, label, padding, row};
+use super::parts::{column, label, padding, row, solid};
+use crate::animation::Easing;
 use crate::error::RenderError;
 use crate::scene::Visual;
-use crate::ui::Ui;
+use crate::ui::{Interact, Key, Ui};
+
+/// 醒目标出（[`Ui::spotlighted`]）撤掉后底色淡出的时长。
+const SPOTLIGHT_FADE: Duration = Duration::from_millis(700);
 
 pub struct SettingRow<'a> {
     title: &'a str,
@@ -73,7 +79,11 @@ impl<'a> SettingRow<'a> {
         }
     }
 
+    /// 行登记成可搜索项（标题与 ⓘ 全文），key 由标题派生；应用醒目标出它时铺一层底色。
     pub fn build<M>(self, ui: &mut Ui<M>, theme: &WidgetTheme) -> Result<NodeId, RenderError> {
+        let key = ui.key(("row", self.title));
+        ui.searchable(key, self.title, self.info);
+        let spot = spotlight(ui, theme, key, (-2.0, 8.0))?;
         let colors = &theme.colors;
         let mut title = label(ui, theme, self.title, theme.font.size, 500, colors.text)?;
         if let Some(text) = self.info {
@@ -99,19 +109,33 @@ impl<'a> SettingRow<'a> {
             )?);
         }
         let heading = ui.scene().node(column(theme, 2.0), Visual::Group, &texts)?;
-        if self.stacked {
-            let mut children = vec![heading];
+        let node = if self.stacked {
+            let mut children = vec![spot, heading];
             children.extend(self.control);
             children.extend(self.below);
-            return ui.scene().node(
+            ui.scene().node(
                 Style {
                     padding: padding(theme, 12.0, 0.0),
                     ..column(theme, 10.0)
                 },
                 Visual::Group,
                 &children,
-            );
-        }
+            )?
+        } else {
+            self.inline(ui, theme, spot, heading)?
+        };
+        ui.interact(node, key, Interact::new());
+        Ok(node)
+    }
+
+    /// 标题在左、控件在右的一行。
+    fn inline<M>(
+        self,
+        ui: &mut Ui<M>,
+        theme: &WidgetTheme,
+        spot: NodeId,
+        heading: NodeId,
+    ) -> Result<NodeId, RenderError> {
         let mut trailing: Vec<NodeId> = self.control.into_iter().collect();
         trailing.extend(self.below);
         let trailing = ui.scene().node(
@@ -135,7 +159,42 @@ impl<'a> SettingRow<'a> {
                 ..row(theme, 16.0)
             },
             Visual::Group,
-            &[heading, trailing],
+            &[spot, heading, trailing],
         )
     }
+}
+
+/// 垫在下面的底色，上下、左右各比盒子出头 `outset` 点（负数为缩进）；不醒目标出时透明（照样建，撤掉时才有淡出可播）。
+pub(super) fn spotlight<M>(
+    ui: &mut Ui<M>,
+    theme: &WidgetTheme,
+    key: Key,
+    (vertical, horizontal): (f32, f32),
+) -> Result<NodeId, RenderError> {
+    let color = theme.colors.selected;
+    let color = if ui.spotlighted(key) {
+        color
+    } else {
+        color.transparent()
+    };
+    let (side, edge) = (
+        LengthPercentageAuto::length(-theme.px(horizontal)),
+        LengthPercentageAuto::length(-theme.px(vertical)),
+    );
+    let node = ui.scene().node(
+        Style {
+            position: Position::Absolute,
+            inset: Rect {
+                left: side,
+                right: side,
+                top: edge,
+                bottom: edge,
+            },
+            ..Style::default()
+        },
+        solid(Some(color), None, theme.px(theme.radius)),
+        &[],
+    )?;
+    ui.fade(node, key.child("spot"), SPOTLIGHT_FADE, Easing::Ease);
+    Ok(node)
 }

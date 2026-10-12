@@ -308,3 +308,63 @@ fn scroll_clamps_to_content_and_clip_hides_scrolled_out_parts() {
             .changed
     );
 }
+
+/// 100 高的视口里一列内容：上面 250 空着，再下面是 30 高的 `far`。
+fn far_below(interaction: &mut Interaction<Message>) {
+    let offset = interaction.scroll_offset(key("viewport")).1;
+    let mut ui = Ui::new(interaction);
+    let fixed = |width: f32, height: f32| Style {
+        size: Size {
+            width: Dimension::length(width),
+            height: Dimension::length(height),
+        },
+        flex_shrink: 0.0,
+        ..Style::default()
+    };
+    let spacer = ui
+        .scene()
+        .node(fixed(100.0, 250.0), Visual::Group, &[])
+        .unwrap();
+    let far = ui
+        .scene()
+        .node(fixed(100.0, 30.0), Visual::Group, &[])
+        .unwrap();
+    let far_key = ui.key("far");
+    ui.interact(far, far_key, Interact::new());
+    let content = ui
+        .scene()
+        .node(
+            Style {
+                flex_direction: FlexDirection::Column,
+                position: taffy::Position::Relative,
+                inset: taffy::Rect {
+                    top: taffy::LengthPercentageAuto::length(-offset),
+                    ..taffy::Rect::auto()
+                },
+                ..fixed(100.0, 300.0)
+            },
+            Visual::Group,
+            &[spacer, far],
+        )
+        .unwrap();
+    let viewport = ui
+        .scene()
+        .node(fixed(100.0, 100.0), Visual::Group, &[content])
+        .unwrap();
+    let viewport_key = ui.key("viewport");
+    ui.interact(viewport, viewport_key, Interact::new().scrolls(content));
+    let (mut scene, elements) = ui.finish();
+    layout(&mut scene, viewport);
+    interaction.attach(&scene, viewport, elements).unwrap();
+}
+
+#[test]
+fn reveal_scrolls_just_enough_and_only_once() {
+    let mut interaction = Interaction::new();
+    far_below(&mut interaction);
+    assert!(interaction.reveal(key("far"), 0.0));
+    assert_eq!(interaction.scroll_offset(key("viewport")), (0.0, 180.0));
+    far_below(&mut interaction);
+    // 已经在视野里：不动
+    assert!(!interaction.reveal(key("far"), 0.0));
+}

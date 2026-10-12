@@ -5,7 +5,7 @@ use taffy::NodeId;
 use super::Waker;
 use crate::error::RenderError;
 use crate::text::TextPainter;
-use crate::ui::Ui;
+use crate::ui::{Key, Ui};
 
 pub trait App {
     /// 控件产出、`update` 处理的消息。
@@ -35,6 +35,11 @@ pub trait App {
     /// 有人调了 [`Waker::wake`]：看看后台的结果，返回要不要重建界面。
     fn wake(&mut self) -> bool {
         false
+    }
+
+    /// 要醒目标出、并滚进视野的那一项（搜索跳过去的设置行）；每次变成新的 key 时滚一次。
+    fn spotlight(&self) -> Option<Key> {
+        None
     }
 
     /// 系统的深浅色变了（开窗时也调一次）。

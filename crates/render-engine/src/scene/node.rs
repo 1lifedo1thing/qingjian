@@ -17,6 +17,12 @@ pub struct SceneNode {
     /// 过渡配对名（同名节点跨帧配对，重复时带序号）与过渡参数；没写 `transition` 的为 `None`。
     pub transition: Option<(String, std::time::Duration, Easing)>,
 
+    /// 过渡只渐变颜色与不透明度，位置、大小直接到布局给的（悬停这类状态变化，跟着排版挪动时不该拖后）。
+    pub fade: bool,
+
+    /// 子孙的滑动过渡以它为参照：它自己挪了不算子孙在动，只有相对它的位置变了才滑。
+    pub anchor: bool,
+
     /// 动画中的位置（画布像素）与不透明度，盖过布局算的；不在动画中为 `None`。
     pub placed: Option<Placement>,
 

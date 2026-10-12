@@ -23,6 +23,44 @@ impl<M> Interaction<M> {
         self.scroll_generation
     }
 
+    /// 把 `key` 那个元素滚进它所在滚动区的视野（上下留 `margin` 像素）；已经看得见就不动。返回滚动位置是否变了。
+    pub fn reveal(&mut self, key: Key, margin: f32) -> bool {
+        let Some(&start) = self.index.get(&key) else {
+            return false;
+        };
+        let (_, top, _, height) = self.elements[start].rect();
+        let chain: Vec<usize> = self.chain(Some(start)).skip(1).collect();
+        for position in chain {
+            let element = &self.elements[position];
+            let Some(extent) = self
+                .extents
+                .get(&element.key)
+                .filter(|_| element.interact.scroll_content.is_some())
+            else {
+                continue;
+            };
+            let scroller = element.key;
+            let (_, view_top, _, view_height) = element.rect();
+            let old = self.scroll_offset(scroller);
+            // 比视野高的只保证顶上看得见
+            let delta = if top < view_top + margin || height > view_height - margin * 2.0 {
+                top - (view_top + margin)
+            } else if top + height > view_top + view_height - margin {
+                top + height - (view_top + view_height - margin)
+            } else {
+                0.0
+            };
+            let new_y = (old.1 + delta).clamp(0.0, extent.max().1);
+            if new_y == old.1 {
+                return false;
+            }
+            self.offsets.insert(scroller, (old.0, new_y));
+            self.scroll_generation += 1;
+            return true;
+        }
+        false
+    }
+
     /// 量出这一帧各滚动区的大小，把超出范围的滚动位置夹回来；返回滚动位置是否因此变了。
     pub(super) fn measure_scrolls(
         &mut self,

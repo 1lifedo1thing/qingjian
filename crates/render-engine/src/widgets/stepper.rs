@@ -118,7 +118,7 @@ impl<'a> Stepper<'a> {
             if !enabled {
                 ui.scene().set_opacity(button, DISABLED_OPACITY);
             }
-            ui.transition(button, button_key, theme.hover, Easing::Ease);
+            ui.fade(button, button_key, theme.hover, Easing::Ease);
             ui.interact(
                 button,
                 button_key,

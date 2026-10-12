@@ -84,7 +84,7 @@ impl ScrollArea {
                 solid(Some(shown), None, theme.px(BAR / 2.0)),
                 &[],
             )?;
-            ui.transition(bar, key.child("bar"), theme.flip, Easing::Ease);
+            ui.fade(bar, key.child("bar"), theme.flip, Easing::Ease);
             children.push(bar);
         }
         let viewport = ui.scene().node(

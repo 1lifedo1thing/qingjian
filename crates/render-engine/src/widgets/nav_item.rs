@@ -123,7 +123,7 @@ impl<'a> NavItem<'a> {
             solid(fill, None, radius),
             &children,
         )?;
-        ui.transition(node, key, theme.hover, Easing::Ease);
+        ui.fade(node, key, theme.hover, Easing::Ease);
         ui.interact(node, key, Interact::new().on_click(on_select).focusable());
         Ok(node)
     }

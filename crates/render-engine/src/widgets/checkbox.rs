@@ -8,6 +8,7 @@ use taffy::{NodeId, Style};
 use super::WidgetTheme;
 use super::check_mark::CheckMark;
 use super::parts::{DISABLED_OPACITY, centered, focus_ring, label, over, row, solid};
+use super::setting_row::spotlight;
 use crate::animation::Easing;
 use crate::error::RenderError;
 use crate::scene::Visual;
@@ -46,6 +47,8 @@ impl<'a> Checkbox<'a> {
         on_toggle: M,
     ) -> Result<NodeId, RenderError> {
         let key = ui.key(local);
+        ui.searchable(key, self.label, None);
+        let spot = spotlight(ui, theme, key, (4.0, 6.0))?;
         let state = ui.state(key);
         let colors = &theme.colors;
         let side = theme.px(SIDE);
@@ -86,7 +89,7 @@ impl<'a> Checkbox<'a> {
             solid(Some(fill), border, radius),
             &marks,
         )?;
-        ui.transition(square, key.child("box"), theme.hover, Easing::Ease);
+        ui.fade(square, key.child("box"), theme.hover, Easing::Ease);
         let text = label(
             ui,
             theme,
@@ -98,7 +101,7 @@ impl<'a> Checkbox<'a> {
         let node = ui.scene().node(
             Style { ..row(theme, 8.0) },
             crate::scene::Visual::Group,
-            &[square, text],
+            &[spot, square, text],
         )?;
         if self.disabled {
             ui.scene().set_opacity(node, DISABLED_OPACITY);

@@ -6,15 +6,16 @@
 mod edit;
 
 use std::hash::Hash;
+use std::sync::Arc;
 
 use taffy::{AlignItems, FlexDirection, JustifyContent, LengthPercentageAuto, NodeId, Size, Style};
 
 use super::WidgetTheme;
-use super::parts::{DISABLED_OPACITY, padding, row, size, solid};
+use super::parts::{DISABLED_OPACITY, centered, over, padding, row, size, solid};
 use crate::animation::Easing;
 use crate::color::Color;
 use crate::error::RenderError;
-use crate::scene::Visual;
+use crate::scene::{Icon, Visual};
 use crate::text::{Decoration, TextStyle};
 use crate::ui::{Interact, KeyCode, Ui};
 
@@ -34,8 +35,14 @@ pub struct TextField<'a> {
     /// 密文：显示成圆点，不能复制、剪切。
     secret: bool,
 
-    /// 宽度（点）。
-    width: f32,
+    /// 宽度（点）；`None` 撑满父节点给的宽度。
+    width: Option<f32>,
+
+    /// 文字前面的图标（搜索框的放大镜）。
+    icon: Option<Arc<dyn Icon>>,
+
+    /// 浅底无边框的样子（搜索框），拿到焦点时才描边。
+    filled: bool,
 
     /// 多行时至少显示几行高（字多了往下长）。
     rows: usize,
@@ -49,7 +56,9 @@ impl<'a> TextField<'a> {
             edit,
             placeholder: "",
             secret: false,
-            width: 240.0,
+            width: Some(240.0),
+            icon: None,
+            filled: false,
             rows: 3,
             disabled: false,
         }
@@ -69,7 +78,30 @@ impl<'a> TextField<'a> {
 
     pub fn width(self, points: f32) -> Self {
         Self {
-            width: points,
+            width: Some(points),
+            ..self
+        }
+    }
+
+    /// 撑满父节点给的宽度。
+    pub fn stretch(self) -> Self {
+        Self {
+            width: None,
+            ..self
+        }
+    }
+
+    pub fn icon(self, icon: Arc<dyn Icon>) -> Self {
+        Self {
+            icon: Some(icon),
+            ..self
+        }
+    }
+
+    /// 浅底无边框（搜索框），拿到焦点时才描边。
+    pub fn filled(self) -> Self {
+        Self {
+            filled: true,
             ..self
         }
     }
@@ -141,19 +173,50 @@ impl<'a> TextField<'a> {
         )?;
         ui.scene().set_clip(view, 0.0);
         ui.interact(view, key.child("view"), Interact::new());
-        let border = if focused { colors.accent } else { colors.line };
         let line_height = self.style(theme, colors.text).line_height;
         let (height, min_height, vertical) = if multiline {
             let rows = self.rows.max(1) as f32;
             let min = rows * line_height + theme.px(MULTILINE_PADDING * 2.0);
             (None, min, MULTILINE_PADDING)
+        } else if self.filled {
+            (Some(theme.px(theme.control_height + 4.0)), 0.0, 0.0)
         } else {
             (Some(theme.px(theme.control_height)), 0.0, 0.0)
         };
+        let paint = if self.filled {
+            let fill = if state.hovered && !focused {
+                over(colors.well, colors.hover)
+            } else {
+                colors.well
+            };
+            let border = focused.then(|| (theme.px(1.5), colors.accent));
+            solid(Some(fill), border, theme.px(theme.radius + 1.0))
+        } else {
+            let border = if focused { colors.accent } else { colors.line };
+            solid(
+                Some(colors.surface),
+                Some((theme.px(if focused { 1.5 } else { 1.0 }), border)),
+                theme.px(theme.radius),
+            )
+        };
+        let mut children = Vec::new();
+        if let Some(icon) = self.icon.clone() {
+            let side = theme.px(13.0);
+            children.push(ui.scene().node(
+                centered(side, side),
+                Visual::Icon {
+                    icon,
+                    size: side,
+                    color: colors.secondary,
+                },
+                &[],
+            )?);
+        }
+        children.push(view);
         let node = ui.scene().node(
             Style {
-                padding: padding(theme, vertical, 8.0),
-                size: size(Some(theme.px(self.width)), height),
+                padding: padding(theme, vertical, if self.filled { 9.0 } else { 8.0 }),
+                size: size(self.width.map(|width| theme.px(width)), height),
                 min_size: Size {
                     width: LengthPercentageAuto::auto(),
                     height: LengthPercentageAuto::length(min_height),
@@ -164,16 +227,12 @@ impl<'a> TextField<'a> {
                 } else {
                     AlignItems::CENTER
                 }),
-                ..row(theme, 0.0)
+                ..row(theme, 7.0)
             },
-            solid(
-                Some(colors.surface),
-                Some((theme.px(if focused { 1.5 } else { 1.0 }), border)),
-                theme.px(theme.radius),
-            ),
-            &[view],
+            paint,
+            &children,
         )?;
-        ui.transition(node, key, theme.hover, Easing::Ease);
+        ui.fade(node, key, theme.hover, Easing::Ease);
         if self.disabled {
             ui.scene().set_opacity(node, DISABLED_OPACITY);
         }
@@ -306,13 +365,19 @@ impl<'a> TextField<'a> {
     }
 
     fn caret<M>(&self, ui: &mut Ui<M>, theme: &WidgetTheme) -> Result<NodeId, RenderError> {
+        // 熄灭的半拍只换透明色，不拿掉节点：文字不跟着挪
+        let color = if ui.caret_visible() {
+            theme.colors.accent
+        } else {
+            theme.colors.accent.transparent()
+        };
         ui.scene().node(
             Style {
                 size: size(Some(theme.px(1.5)), Some(theme.px(16.0))),
                 flex_shrink: 0.0,
                 ..Style::default()
             },
-            Visual::solid(theme.colors.accent, 0.0),
+            Visual::solid(color, 0.0),
             &[],
         )
     }

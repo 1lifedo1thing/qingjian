@@ -96,7 +96,8 @@ impl Switch {
             solid(Some(track), None, height / 2.0),
             &children,
         )?;
-        ui.transition(node, key, theme.flip, crate::animation::Easing::Ease);
+        ui.fade(node, key, theme.flip, crate::animation::Easing::Ease);
+        ui.anchor(node);
         if self.disabled {
             ui.scene().set_opacity(node, DISABLED_OPACITY);
         }

@@ -68,9 +68,10 @@ impl Page<'_> {
 
     fn sidebar(&self, ui: &mut Ui<Message>) -> Result<NodeId, RenderError> {
         let theme = &self.theme;
-        let search = SearchField::new("搜索")
+        let search = SearchField::new(&self.demo.search)
+            .placeholder("搜索")
             .icon(Arc::new(Glyph::Search))
-            .build(ui, theme, "search")?;
+            .build(ui, theme, "search", Message::Search, None, None)?;
         let items = ui.scope("nav", |ui| -> Result<Vec<NodeId>, RenderError> {
             let mut items = Vec::new();
             for (index, name) in PAGES.iter().enumerate() {

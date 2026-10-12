@@ -90,7 +90,7 @@ impl<'a> Segmented<'a> {
                 solid(fill, None, radius - inset),
                 &children,
             )?;
-            ui.transition(node, option_key, theme.hover, Easing::Ease);
+            ui.fade(node, option_key, theme.hover, Easing::Ease);
             ui.interact(
                 node,
                 option_key,
@@ -112,6 +112,7 @@ impl<'a> Segmented<'a> {
             solid(Some(colors.well), None, radius),
             &options,
         )?;
+        ui.anchor(node);
         if self.disabled {
             ui.scene().set_opacity(node, DISABLED_OPACITY);
         }

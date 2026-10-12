@@ -4,9 +4,10 @@ use taffy::NodeId;
 
 use super::WidgetTheme;
 use super::parts::{column, label, padding, size, solid};
+use super::setting_row::spotlight;
 use crate::error::RenderError;
 use crate::scene::Visual;
-use crate::ui::Ui;
+use crate::ui::{Interact, Ui};
 
 /// 分组标题：小字、次要色，略向里缩，与卡片里的文字对齐。
 pub fn section_title<M>(
@@ -14,6 +15,9 @@ pub fn section_title<M>(
     theme: &WidgetTheme,
     text: &str,
 ) -> Result<NodeId, RenderError> {
+    let key = ui.key(("section", text));
+    ui.searchable(key, text, None);
+    let spot = spotlight(ui, theme, key, (5.0, 4.0))?;
     let title = label(
         ui,
         theme,
@@ -22,7 +26,7 @@ pub fn section_title<M>(
         600,
         theme.colors.secondary,
     )?;
-    ui.scene().node(
+    let node = ui.scene().node(
         taffy::Style {
             padding: padding(theme, 0.0, 4.0),
             margin: taffy::Rect {
@@ -32,8 +36,10 @@ pub fn section_title<M>(
             ..taffy::Style::default()
         },
         Visual::Group,
-        &[title],
-    )
+        &[spot, title],
+    )?;
+    ui.interact(node, key, Interact::new());
+    Ok(node)
 }
 
 /// 卡片：`rows` 竖着排，相邻两行之间一条分隔线。

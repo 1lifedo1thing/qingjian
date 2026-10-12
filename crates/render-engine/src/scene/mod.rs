@@ -112,6 +112,8 @@ impl Scene {
                 opacity: 1.0,
                 effects: Vec::new(),
                 transition: None,
+                fade: false,
+                anchor: false,
                 placed: None,
                 animation: None,
                 pose: None,

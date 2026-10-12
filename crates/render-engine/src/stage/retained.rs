@@ -32,6 +32,9 @@ pub(super) struct Retained {
     /// 带过渡的节点布局给的位置（相对根节点），按配对名。
     pub(super) placements: HashMap<String, Placement>,
 
+    /// 各配对节点的参照祖先位置（相对根节点），见 [`crate::scene::Keyed::anchor`]。
+    pub(super) anchors: HashMap<String, (f32, f32)>,
+
     /// 在播的过渡。
     pub(super) transitions: Vec<Transition>,
 

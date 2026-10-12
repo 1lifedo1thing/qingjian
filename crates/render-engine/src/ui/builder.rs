@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use taffy::NodeId;
 
-use super::{ElementState, Elements, Interact, Interaction, Key, ScrollExtent};
+use super::{ElementState, Elements, Interact, Interaction, Key, ScrollExtent, Searchable};
 use crate::animation::Easing;
 use crate::scene::Scene;
 
@@ -21,6 +21,9 @@ pub struct Ui<'a, M> {
 
     /// 浮在整窗最上面的节点（悬停说明），见 [`Self::overlay`]。
     overlays: Vec<NodeId>,
+
+    /// 这一帧登记的可搜索项，见 [`Self::searchable`]。
+    searchables: Vec<Searchable>,
 }
 
 impl<'a, M> Ui<'a, M> {
@@ -31,6 +34,7 @@ impl<'a, M> Ui<'a, M> {
             scope: Key::ROOT,
             elements: Vec::new(),
             overlays: Vec::new(),
+            searchables: Vec::new(),
         }
     }
 
@@ -61,6 +65,30 @@ impl<'a, M> Ui<'a, M> {
         self.interaction.rect(key)
     }
 
+    /// 登记一项可搜索的内容（设置行、分组标题这类控件自己调）。
+    pub fn searchable(&mut self, key: Key, title: &str, detail: Option<&str>) {
+        self.searchables.push(Searchable {
+            key,
+            title: title.to_owned(),
+            detail: detail.map(str::to_owned),
+        });
+    }
+
+    /// 取走这一帧登记的可搜索项：使用方离屏建一遍各页，收集成搜索索引。
+    pub fn take_searchables(&mut self) -> Vec<Searchable> {
+        std::mem::take(&mut self.searchables)
+    }
+
+    /// `key` 是应用要醒目标出的那一项（[`crate::App::spotlight`]）。
+    pub fn spotlighted(&self, key: Key) -> bool {
+        self.interaction.spotlight() == Some(key)
+    }
+
+    /// 输入框光标这一刻亮着，见 [`Interaction::caret_visible`]。
+    pub fn caret_visible(&self) -> bool {
+        self.interaction.caret_visible()
+    }
+
     /// 滚动区的滚动位置与上一帧的大小，见 [`Interaction::scroll_offset`]、[`Interaction::scroll_extent`]。
     pub fn scroll(&self, key: Key) -> ((f32, f32), Option<ScrollExtent>) {
         (
@@ -79,6 +107,18 @@ impl<'a, M> Ui<'a, M> {
     pub fn transition(&mut self, node: NodeId, key: Key, duration: Duration, easing: Easing) {
         self.scene
             .set_transition(node, key.transition_name(), duration, easing);
+    }
+
+    /// 同 [`Self::transition`]，但只渐变颜色与不透明度（悬停、按下这类状态）；位置、大小跟着排版直接跳。
+    pub fn fade(&mut self, node: NodeId, key: Key, duration: Duration, easing: Easing) {
+        self.scene
+            .set_fade(node, key.transition_name(), duration, easing);
+    }
+
+    /// 子孙的滑动过渡以 `node` 为参照，见 [`Scene::set_anchor`]。控件里会滑的部件（开关的圆钮、分段的底块）
+    /// 以控件为参照，控件整个被排版挤动时就不会拖在后面。
+    pub fn anchor(&mut self, node: NodeId) {
+        self.scene.set_anchor(node);
     }
 
     /// 浮层：建好后挂到根节点最后，盖在所有东西上面、不被滚动区裁掉。节点要自己绝对定位（根坐标）。

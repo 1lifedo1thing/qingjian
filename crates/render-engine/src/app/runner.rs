@@ -7,7 +7,10 @@ use super::App;
 use crate::error::RenderError;
 use crate::fonts::FontLibrary;
 use crate::stage::{Painted, Stage};
-use crate::ui::{Event, Interaction, Ui};
+use crate::ui::{Event, Interaction, Key, Ui};
+
+/// 输入框光标亮、灭各多久（同 Windows 默认的闪烁间隔）。
+const CARET_BLINK: Duration = Duration::from_millis(530);
 
 pub struct Runner<A: App> {
     app: A,
@@ -24,6 +27,15 @@ pub struct Runner<A: App> {
 
     /// 上一次重建（建树加布局）花了多久。
     last_build: Option<Duration>,
+
+    /// 光标闪烁从这一刻算起：拿到焦点、打字、点击时重新从亮开始。
+    blink_from: Instant,
+
+    /// 窗口在前台；不在前台时光标不显示、不闪。
+    active: bool,
+
+    /// 上次滚进视野的 [`App::spotlight`]：同一项只滚一次，之后用户自己滚走不拉回来。
+    revealed: Option<Key>,
 }
 
 impl<A: App> Runner<A> {
@@ -37,6 +49,9 @@ impl<A: App> Runner<A> {
             stale: true,
             quit: false,
             last_build: None,
+            blink_from: Instant::now(),
+            active: true,
+            revealed: None,
         }
     }
 
@@ -78,8 +93,32 @@ impl<A: App> Runner<A> {
         rebuild
     }
 
+    /// 窗口进出前台：光标跟着显示、熄灭。
+    pub fn set_active(&mut self, active: bool) {
+        self.active = active;
+        self.blink_from = Instant::now();
+        self.stale = true;
+    }
+
+    /// 输入框有焦点时，光标下一次亮灭翻转的时刻；宿主等到那时再要一帧。没在闪为 `None`。
+    pub fn next_blink(&self, now: Instant) -> Option<Instant> {
+        if !self.active || self.interaction.text_target().is_none() {
+            return None;
+        }
+        Some(self.blink_from + CARET_BLINK * (self.beats(now) + 1))
+    }
+
+    /// 从闪烁起点到 `now` 过了几个半拍（偶数亮、奇数灭）。
+    fn beats(&self, now: Instant) -> u32 {
+        let elapsed = now.saturating_duration_since(self.blink_from).as_nanos();
+        u32::try_from(elapsed / CARET_BLINK.as_nanos()).unwrap_or(u32::MAX - 1)
+    }
+
     /// 处理一个输入事件，返回要不要重画。
     pub fn handle(&mut self, event: &Event) -> bool {
+        if matches!(event, Event::Key(_) | Event::Text(_) | Event::PointerDown) {
+            self.blink_from = Instant::now();
+        }
         let response = self.interaction.handle(event);
         let rebuild = response.needs_rebuild();
         for message in response.messages {
@@ -98,6 +137,12 @@ impl<A: App> Runner<A> {
         size: (u32, u32),
         now: Instant,
     ) -> Result<Option<Painted>, RenderError> {
+        let visible = self.active && self.beats(now).is_multiple_of(2);
+        if visible != self.interaction.caret_visible() {
+            self.interaction.set_caret_visible(visible);
+            // 没有输入框时这个状态没人看，不为它重建
+            self.stale |= self.interaction.text_target().is_some();
+        }
         if self.stale {
             return self.rebuild(scale, size, now).map(Some);
         }
@@ -114,6 +159,8 @@ impl<A: App> Runner<A> {
         let start = Instant::now();
         self.stale = false;
         // 布局挪动可能让指针换了元素，悬停状态变了要按新状态再建一次；再变也不追了，下次事件会改正
+        let spotlight = self.app.spotlight();
+        self.interaction.set_spotlight(spotlight);
         let mut attempts = 0;
         let (scene, root, content) = loop {
             let mut ui = Ui::new(&self.interaction);
@@ -122,7 +169,15 @@ impl<A: App> Runner<A> {
             let (mut scene, elements) = ui.finish();
             let content = scene.layout(root, self.stage.text())?;
             attempts += 1;
-            if !self.interaction.attach(&scene, root, elements)? || attempts == 2 {
+            let mut again = self.interaction.attach(&scene, root, elements)?;
+            if spotlight != self.revealed {
+                self.revealed = spotlight;
+                // 滚动区的大小这一帧才量出来，滚了要按新位置再建一次
+                if let Some(key) = spotlight {
+                    again |= self.interaction.reveal(key, 24.0 * scale);
+                }
+            }
+            if !again || attempts == 3 {
                 break (scene, root, content);
             }
         };

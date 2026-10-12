@@ -1,5 +1,7 @@
 //! 样例应用的状态与消息：照青简设置的「候选窗口」页（选项是真实的，只是不落盘）。`update` 是唯一改状态的地方。
 
+use render_engine::{Edit, TextEdit};
+
 pub const PAGES: [&str; 11] = [
     "通用",
     "候选窗口",
@@ -48,6 +50,7 @@ pub enum Message {
     ResetSizes,
     Animations,
     OpenFonts,
+    Search(Edit),
     Quit,
 }
 
@@ -73,6 +76,9 @@ pub struct Demo {
 
     /// 系统是深色（「跟随系统」时用它）。
     pub system_dark: bool,
+
+    /// 侧栏搜索框里的字（样例只能打字，不搜）。
+    pub search: TextEdit,
 }
 
 impl Demo {
@@ -88,6 +94,7 @@ impl Demo {
             gloss_size: 13,
             animations: true,
             system_dark,
+            search: TextEdit::new(String::new()),
         }
     }
 
@@ -134,6 +141,9 @@ impl Demo {
                 *slot = index;
             }
             Message::Expand => self.expand = !self.expand,
+            Message::Search(edit) => {
+                self.search.apply(&edit);
+            }
             Message::Step(size, delta) => {
                 let slot = match size {
                     Size::Candidate => &mut self.candidate_size,

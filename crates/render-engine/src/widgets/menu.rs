@@ -122,7 +122,7 @@ impl<'a> Menu<'a> {
                 solid(fill, None, radius - theme.px(2.0)),
                 &[check, text],
             )?;
-            ui.transition(node, item_key, theme.hover, Easing::Ease);
+            ui.fade(node, item_key, theme.hover, Easing::Ease);
             ui.interact(node, item_key, Interact::new().on_click(on_pick(index)));
             rows.push(node);
         }

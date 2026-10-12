@@ -120,6 +120,10 @@ impl Stage {
                 .iter()
                 .map(|keyed| (keyed.key.clone(), keyed.placement))
                 .collect(),
+            anchors: keyed
+                .iter()
+                .map(|keyed| (keyed.key.clone(), keyed.anchor))
+                .collect(),
             transitions,
             animated,
             partial: None,

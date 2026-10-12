@@ -38,7 +38,7 @@ pub use text::font::{FamilyId, FamilyList, FamilyTable, FontSpec, FontWeight};
 pub use text::{Decoration, TextPainter, TextSize, TextStyle};
 pub use ui::{
     ElementState, Elements, Event, Interact, Interaction, Key, KeyCode, KeyPress, Modifiers,
-    Response, ScrollExtent, TextInput, Ui,
+    Response, ScrollExtent, Searchable, TextInput, Ui,
 };
 pub use widgets::{
     Button, Checkbox, Edit, KeyRecorder, Menu, NavItem, ScrollArea, SearchField, Segmented, Select,

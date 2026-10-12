@@ -46,6 +46,12 @@ pub struct Interaction<M> {
 
     /// 滚动位置每变一次加一：使用方拿它区分「内容被滚动挪了」与「布局真的变了」，前者不该触发位置过渡。
     scroll_generation: u64,
+
+    /// 输入框光标正处在闪烁熄灭的半拍；由 [`crate::Runner`] 按时间翻。
+    caret_hidden: bool,
+
+    /// 应用要醒目标出的那一项，见 [`crate::App::spotlight`]。
+    spotlight: Option<Key>,
 }
 
 impl<M> Default for Interaction<M> {
@@ -67,7 +73,27 @@ impl<M> Interaction<M> {
             offsets: HashMap::new(),
             extents: HashMap::new(),
             scroll_generation: 0,
+            caret_hidden: false,
+            spotlight: None,
         }
+    }
+
+    /// 输入框的光标这一刻亮着（闪烁中熄灭的半拍为 `false`）。
+    pub fn caret_visible(&self) -> bool {
+        !self.caret_hidden
+    }
+
+    pub(crate) fn set_caret_visible(&mut self, visible: bool) {
+        self.caret_hidden = !visible;
+    }
+
+    /// 应用要醒目标出的那一项。
+    pub fn spotlight(&self) -> Option<Key> {
+        self.spotlight
+    }
+
+    pub(crate) fn set_spotlight(&mut self, key: Option<Key>) {
+        self.spotlight = key;
     }
 
     pub fn state(&self, key: Key) -> ElementState {

@@ -8,8 +8,9 @@ use softbuffer::{Context, Surface};
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
+use winit::event::StartCause;
 use winit::event::{ElementState, Ime, MouseButton, WindowEvent};
-use winit::event_loop::ActiveEventLoop;
+use winit::event_loop::{ActiveEventLoop, ControlFlow};
 use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
 use winit::window::{Theme, Window, WindowId};
 
@@ -157,6 +158,22 @@ impl<A: App> Handler<A> {
 }
 
 impl<A: App> ApplicationHandler for Handler<A> {
+    fn new_events(&mut self, _: &ActiveEventLoop, cause: StartCause) {
+        if let StartCause::ResumeTimeReached { .. } = cause
+            && let Some(host) = &self.window
+        {
+            host.window.request_redraw();
+        }
+    }
+
+    /// 输入框有焦点时等到光标下一次翻转再醒，别的时候干等事件。
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        event_loop.set_control_flow(match self.runner.next_blink(Instant::now()) {
+            Some(at) => ControlFlow::WaitUntil(at),
+            None => ControlFlow::Wait,
+        });
+    }
+
     fn user_event(&mut self, _: &ActiveEventLoop, (): ()) {
         if self.runner.wake()
             && let Some(host) = &self.window
@@ -184,6 +201,11 @@ impl<A: App> ApplicationHandler for Handler<A> {
             }
             WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } => {
                 self.runner.invalidate();
+                window.request_redraw();
+                return;
+            }
+            WindowEvent::Focused(focused) => {
+                self.runner.set_active(focused);
                 window.request_redraw();
                 return;
             }

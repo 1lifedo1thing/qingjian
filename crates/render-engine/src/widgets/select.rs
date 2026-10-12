@@ -100,7 +100,7 @@ impl<'a> Select<'a> {
             solid(Some(fill), Some((theme.px(1.0), colors.line)), radius),
             &children,
         )?;
-        ui.transition(node, key, theme.hover, Easing::Ease);
+        ui.fade(node, key, theme.hover, Easing::Ease);
         if self.disabled {
             ui.scene().set_opacity(node, DISABLED_OPACITY);
         }

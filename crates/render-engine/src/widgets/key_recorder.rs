@@ -115,7 +115,7 @@ impl<'a> KeyRecorder<'a> {
             solid(Some(fill), Some(border), radius),
             &children,
         )?;
-        ui.transition(node, key, theme.hover, Easing::Ease);
+        ui.fade(node, key, theme.hover, Easing::Ease);
         if self.disabled {
             ui.scene().set_opacity(node, DISABLED_OPACITY);
         }
