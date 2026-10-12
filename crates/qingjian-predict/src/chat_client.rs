@@ -331,7 +331,6 @@ mod tests {
         // 温度报错同样走 1210，不能误判成思考拒绝
         let temperature_error = thinking_error("temperature参数非法：限制小数点[2]位");
         assert!(!rejects_thinking_control(&temperature_error));
-        assert!(!rejects_thinking_control(&temperature_error));
 
         let mut body = serde_json::json!({
             "model": "glm-5.3-flash",
