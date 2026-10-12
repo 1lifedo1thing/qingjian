@@ -16,7 +16,7 @@ pub fn section_title<M>(
     text: &str,
 ) -> Result<NodeId, RenderError> {
     let key = ui.key(("section", text));
-    ui.searchable(key, text, None);
+    ui.searchable(key, (text, None), &[], &[]);
     let spot = spotlight(ui, theme, key, (5.0, 4.0))?;
     let title = label(
         ui,

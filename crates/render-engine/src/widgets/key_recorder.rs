@@ -136,6 +136,7 @@ impl<'a> KeyRecorder<'a> {
                 .on_blur(on_cancel);
         }
         ui.interact(node, key, interact);
+        ui.keyword(node, self.value);
         Ok(node)
     }
 }

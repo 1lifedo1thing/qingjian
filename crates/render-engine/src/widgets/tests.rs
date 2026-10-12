@@ -282,3 +282,30 @@ fn controls_pushed_by_layout_jump_while_their_own_parts_still_slide() {
     );
     assert!(shifted(&mut stage, 40.0, true, later), "拨开关时圆钮要滑");
 }
+
+#[test]
+fn rows_claim_the_words_on_their_own_controls() {
+    let theme = WidgetTheme::new(WidgetColors::LIGHT, 1.0);
+    let interaction = Interaction::<Message>::new();
+    let mut ui = Ui::new(&interaction);
+    // 两行的控件都先建好、再建行：各行只收自己控件上的字
+    let first = Segmented::new(&["一", "二"], 0)
+        .build(&mut ui, &theme, "first", Message::Pick)
+        .unwrap();
+    let second = Select::new("英语")
+        .options(&["英语", "日语"])
+        .build(&mut ui, &theme, "second", Message::Toggle)
+        .unwrap();
+    SettingRow::new("数字")
+        .keywords(&["数目"])
+        .control(first)
+        .build(&mut ui, &theme)
+        .unwrap();
+    SettingRow::new("译文")
+        .control(second)
+        .build(&mut ui, &theme)
+        .unwrap();
+    let found = ui.take_searchables();
+    assert_eq!(found[0].keywords, ["一", "二", "数目"]);
+    assert_eq!(found[1].keywords, ["英语", "英语", "日语"]);
+}

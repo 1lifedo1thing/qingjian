@@ -47,7 +47,7 @@ impl<'a> Checkbox<'a> {
         on_toggle: M,
     ) -> Result<NodeId, RenderError> {
         let key = ui.key(local);
-        ui.searchable(key, self.label, None);
+        ui.searchable(key, (self.label, None), &[], &[]);
         let spot = spotlight(ui, theme, key, (4.0, 6.0))?;
         let state = ui.state(key);
         let colors = &theme.colors;

@@ -132,6 +132,9 @@ impl<'a> Segmented<'a> {
                     messages.get(next).cloned()
                 }),
         );
+        for option in self.options {
+            ui.keyword(node, option);
+        }
         Ok(node)
     }
 }

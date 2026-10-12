@@ -19,6 +19,9 @@ use crate::ui::{Interact, Ui};
 pub struct Select<'a> {
     value: &'a str,
 
+    /// 弹出菜单里的全部选项：不画，只给搜索当关键词。
+    options: &'a [&'a str],
+
     /// 宽度（点）；`None` 按内容撑开。
     width: Option<f32>,
 
@@ -29,9 +32,15 @@ impl<'a> Select<'a> {
     pub fn new(value: &'a str) -> Self {
         Self {
             value,
+            options: &[],
             width: None,
             disabled: false,
         }
+    }
+
+    /// 弹出菜单里的全部选项，搜索时按它们也能找到这一行。
+    pub fn options(self, options: &'a [&'a str]) -> Self {
+        Self { options, ..self }
     }
 
     pub fn width(self, points: f32) -> Self {
@@ -112,6 +121,10 @@ impl<'a> Select<'a> {
                 .focusable()
                 .disabled(self.disabled),
         );
+        ui.keyword(node, self.value);
+        for option in self.options {
+            ui.keyword(node, option);
+        }
         Ok(node)
     }
 }

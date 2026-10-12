@@ -123,6 +123,12 @@ impl Scene {
         Ok(node)
     }
 
+    /// `node` 就是 `ancestor` 或在它的子树里。
+    pub fn within(&self, node: NodeId, ancestor: NodeId) -> bool {
+        std::iter::successors(Some(node), |&current| self.tree.parent(current))
+            .any(|current| current == ancestor)
+    }
+
     /// 给已建好的 `parent` 末尾再加一个子节点（画在原有子节点上面）。
     pub fn append(&mut self, parent: NodeId, child: NodeId) -> Result<(), RenderError> {
         self.tree.add_child(parent, child)?;

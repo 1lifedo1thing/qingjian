@@ -28,6 +28,9 @@ pub struct SettingRow<'a> {
     below: Vec<NodeId>,
 
     stacked: bool,
+
+    /// 使用方补的搜索同义词。
+    keywords: &'a [&'a str],
 }
 
 impl<'a> SettingRow<'a> {
@@ -39,6 +42,7 @@ impl<'a> SettingRow<'a> {
             control: None,
             below: Vec::new(),
             stacked: false,
+            keywords: &[],
         }
     }
 
@@ -71,6 +75,11 @@ impl<'a> SettingRow<'a> {
         self
     }
 
+    /// 搜索时也按这些词找到这一行（标题、ⓘ、控件上的字之外的同义词）。
+    pub fn keywords(self, keywords: &'a [&'a str]) -> Self {
+        Self { keywords, ..self }
+    }
+
     /// 控件放到标题下面、左对齐占满一行。
     pub fn stacked(self) -> Self {
         Self {
@@ -82,7 +91,8 @@ impl<'a> SettingRow<'a> {
     /// 行登记成可搜索项（标题与 ⓘ 全文），key 由标题派生；应用醒目标出它时铺一层底色。
     pub fn build<M>(self, ui: &mut Ui<M>, theme: &WidgetTheme) -> Result<NodeId, RenderError> {
         let key = ui.key(("row", self.title));
-        ui.searchable(key, self.title, self.info);
+        let owned: Vec<NodeId> = self.control.iter().chain(&self.below).copied().collect();
+        ui.searchable(key, (self.title, self.info), &owned, self.keywords);
         let spot = spotlight(ui, theme, key, (-2.0, 8.0))?;
         let colors = &theme.colors;
         let mut title = label(ui, theme, self.title, theme.font.size, 500, colors.text)?;

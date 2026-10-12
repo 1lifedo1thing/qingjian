@@ -11,4 +11,7 @@ pub struct Searchable {
 
     /// 补充说明（设置行的 ⓘ 全文）。
     pub detail: Option<String>,
+
+    /// 行里控件上的字（分段的各项、下拉框的当前值与全部选项）与使用方补的同义词：记不清标题时按它也能搜到。
+    pub keywords: Vec<String>,
 }

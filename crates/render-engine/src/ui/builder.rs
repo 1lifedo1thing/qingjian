@@ -24,6 +24,9 @@ pub struct Ui<'a, M> {
 
     /// 这一帧登记的可搜索项，见 [`Self::searchable`]。
     searchables: Vec<Searchable>,
+
+    /// 控件登记、还没被设置行收走的关键词与登记它的节点，见 [`Self::keyword`]。
+    keywords: Vec<(NodeId, String)>,
 }
 
 impl<'a, M> Ui<'a, M> {
@@ -35,6 +38,7 @@ impl<'a, M> Ui<'a, M> {
             elements: Vec::new(),
             overlays: Vec::new(),
             searchables: Vec::new(),
+            keywords: Vec::new(),
         }
     }
 
@@ -65,13 +69,38 @@ impl<'a, M> Ui<'a, M> {
         self.interaction.rect(key)
     }
 
-    /// 登记一项可搜索的内容（设置行、分组标题这类控件自己调）。
-    pub fn searchable(&mut self, key: Key, title: &str, detail: Option<&str>) {
+    /// 登记一项可搜索的内容（设置行、分组标题这类控件自己调）。`owned` 是这一项装着的节点（行的控件），
+    /// 它们子树里控件登记的关键词归这一项；`keywords` 是使用方另补的同义词。
+    pub fn searchable(
+        &mut self,
+        key: Key,
+        (title, detail): (&str, Option<&str>),
+        owned: &[NodeId],
+        keywords: &[&str],
+    ) {
+        let mut claimed: Vec<String> = Vec::new();
+        let scene = &self.scene;
+        self.keywords.retain(|(node, word)| {
+            let mine = owned.iter().any(|&root| scene.within(*node, root));
+            if mine {
+                claimed.push(word.clone());
+            }
+            !mine
+        });
+        claimed.extend(keywords.iter().map(|word| (*word).to_owned()));
         self.searchables.push(Searchable {
             key,
             title: title.to_owned(),
             detail: detail.map(str::to_owned),
+            keywords: claimed,
         });
+    }
+
+    /// 控件上显示的字（`node` 是控件的根节点），装着它的设置行建好时收作搜索关键词。
+    pub fn keyword(&mut self, node: NodeId, text: &str) {
+        if !text.is_empty() {
+            self.keywords.push((node, text.to_owned()));
+        }
     }
 
     /// 取走这一帧登记的可搜索项：使用方离屏建一遍各页，收集成搜索索引。
