@@ -78,7 +78,7 @@ page_keys = "-="
 
 ## 配置、隐私和数据
 
-首次运行生成 `~/.config/qingjian/config.toml`，修改后重启青简服务。
+首次运行生成 `~/.config/qingjian/config.toml`，保存后约一秒内生效，不用重启；`[general] preedit` 与 `[general] input_log` 例外，改完要重启青简服务。
 `[general] preedit` 可设为 `both`（行内和候选窗口）、`inline`（只在行内）、`window`（只在候选窗口）；应用不支持行内显示时使用候选窗口。
 每页候选数、翻页键、学习、日志和辅助语言使用同一配置文件。`learning_language = "off"` 关闭中文候选的辅助语言释义与生词标记。系统面板外观由 Fcitx5 设置控制。
 
