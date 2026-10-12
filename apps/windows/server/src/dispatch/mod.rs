@@ -181,6 +181,7 @@ impl Router {
             .get(&session)
             .and_then(|info| info.app.as_deref());
         InputSettings {
+            toggle_punctuation: self.config.toggle_punctuation,
             switch_mode: self.config.switch_mode,
             english_mode: self.config.english_mode,
             shift_letter_compose: self.config.shift_letter_compose,

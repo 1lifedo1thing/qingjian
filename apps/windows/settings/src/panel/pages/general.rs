@@ -177,7 +177,7 @@ pub(crate) fn view(settings: &Settings, context: &mut ViewContext<Settings>) -> 
         field(
             "中英切换键",
             "勾上的键都能在中英之间切换，可以多选，改完立刻生效。打字时容易误触 Shift 的话改勾「单击 Ctrl」；一个都不勾时只剩任务栏 / 悬浮状态条上的「中」「英」按钮。\
-             系统自带的 Ctrl + Space 也能切中英，与微软拼音一致，不用勾（装了别的输入法时 Windows 可能改用它切换输入法）。",
+             「Ctrl + Space（系统）」是 Windows 的设置，由 Windows 管理，也会影响微软拼音等简体中文输入法。",
             switch_key_boxes(settings, context),
         ),
         field(
@@ -216,7 +216,7 @@ pub(crate) fn view(settings: &Settings, context: &mut ViewContext<Settings>) -> 
     )
 }
 
-/// 中英切换键：纵排避免在窄窗口与高缩放下挤出卡片。
+/// 中英切换键：系统 Ctrl + Space 在最上面，其余青简切换键纵排，避免在窄窗口与高缩放下挤出卡片。
 fn switch_key_boxes(settings: &Settings, context: &mut ViewContext<Settings>) -> View {
     let keys = settings.config.shortcut.switch_mode;
     let boxes = SwitchKey::ALL.map(|key| {
@@ -225,8 +225,14 @@ fn switch_key_boxes(settings: &Settings, context: &mut ViewContext<Settings>) ->
             .on_is_checked_changed(context.callback(move |on| Message::SwitchKey(key, on)))
             .content(key.label())
     });
-    StackPanel::new()
-        .orientation(Orientation::Vertical)
-        .spacing(4.0)
-        .children(boxes)
+    StackPanel::new().spacing(4.0).children([
+        CheckBox::new()
+            .is_checked(crate::panel::system_hotkey::ctrl_space_enabled())
+            .on_is_checked_changed(context.callback(Message::SystemCtrlSpace))
+            .content("Ctrl + Space（系统）"),
+        StackPanel::new()
+            .orientation(Orientation::Vertical)
+            .spacing(4.0)
+            .children(boxes),
+    ])
 }
