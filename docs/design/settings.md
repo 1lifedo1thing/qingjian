@@ -244,7 +244,7 @@ Windows 和 Linux 以前没有这一页，这次都有了。
 8. 换掉旧设置程序：新程序装进安装包，输入法菜单「设置…」、Windows 状态条的 ⚙、开始菜单与 Linux 应用菜单的「青简设置」打开它。
    - 安装位置：macOS 是 `Qingjian.app/Contents/Applications/QingjianSettings.app`（独立的 .app，自己的 Dock 图标与名字，`open` 打开；随包数据从外层 `Qingjian.app` 读）；
      Windows 是与 Server 同目录的 `qingjian-settings.exe`（只开一个，第二次启动把已开的带到前台）；Linux 是 `<前缀>/bin/qingjian-settings` 加一个 `.desktop`。
-   - 回退：旧的 macOS 偏好设置（菜单「旧版设置…」）与 Windows 设置程序（`qingjian-settings-legacy.exe`，开始菜单「青简旧版设置」）留一个版本，下个版本删。
+   - 回退：旧的 macOS 偏好设置（菜单「旧版设置…」）与 Windows 设置程序（`qingjian-settings-legacy.exe`，任务栏「中 / 英」右键菜单「旧版设置…」与开始菜单「青简旧版设置」）留一个版本，下个版本删。
      新程序打不开时用旧版；某项不生效靠测试拦：`config_keys` 离屏点遍每一页的控件，变了的键用输入法的 `Config` 读回核对。
    - ⓘ 可点：悬停仍是短说明，末尾一行「点一下 ⓘ 打开文档」，点了打开官网文档对应的一段（`docs.rs` 一张表，按页与行标题对到 `docs/user/` 的某个标题，
      锚点照官网的 `headingId` 生成）。测试核对表里每一段在文档里真有这个标题、每一行在那页上真有 ⓘ，文档改标题时测试报错。
