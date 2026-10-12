@@ -5,29 +5,18 @@
 //! - `--png <目录>`：不开窗口，拷一份配置到目录里，按脚本点几下，每步存一张截图。
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
-mod action;
-mod cloud;
-#[cfg(test)]
-mod config_keys;
 mod docs;
-mod fonts;
-mod icons;
-mod import;
+mod jobs;
 mod library;
 mod message;
+mod offscreen;
 mod page_id;
-mod palette;
-mod paths;
-mod phrases;
-mod previews;
+mod phrase_editor;
 mod search;
 mod settings;
 mod shortcut;
-#[cfg(windows)]
-mod single_instance;
-mod snapshot;
 mod stats;
-mod update;
+mod system;
 mod view;
 
 use std::path::PathBuf;
@@ -35,6 +24,7 @@ use std::path::PathBuf;
 use render_engine::{WindowOptions, run_window};
 
 use settings::Settings;
+use system::paths;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_logging();
@@ -77,13 +67,13 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             "--config" => config = args.next().map(PathBuf::from),
             "--png" => {
                 let directory = args.next().map(PathBuf::from).ok_or("--png 后面要给目录")?;
-                return snapshot::run(config.as_deref(), &directory);
+                return offscreen::snapshot::run(config.as_deref(), &directory);
             }
             other => return Err(format!("不认识的参数：{other}").into()),
         }
     }
     #[cfg(windows)]
-    if !single_instance::acquire() {
+    if !system::single_instance::acquire() {
         return Ok(());
     }
     let config = config.ok_or("找不到配置文件的位置")?;

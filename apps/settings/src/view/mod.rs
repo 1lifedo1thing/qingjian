@@ -1,22 +1,15 @@
 //! 视图：竹青侧栏（logo、搜索、线性图标的导航、竹节标记）+ 右边当前页的设置项，整页可滚。
 //! 哪页放哪些项见 docs/design/settings.md。
 
-mod about;
-mod advanced;
-mod appearance;
-mod candidates;
-mod cloud;
-mod controls;
-mod dictionaries;
-mod input;
-mod language;
-mod lists;
-mod menus;
-mod phrases;
-pub(super) mod shortcuts;
+pub mod icons;
+mod page;
+mod pages;
+pub mod palette;
+mod parts;
+pub mod previews;
 mod sidebar;
-mod stats;
-mod themes;
+
+pub use page::Page;
 
 use render_engine::taffy::{Dimension, FlexDirection, LengthPercentage, NodeId, Rect, Size, Style};
 use render_engine::{
@@ -25,40 +18,12 @@ use render_engine::{
 
 use crate::message::Message;
 use crate::page_id::PageId;
-use crate::palette::{DARK, LIGHT, Palette};
 use crate::search::Entry;
 use crate::settings::Settings;
+use palette::{DARK, LIGHT};
 
 /// 右边内容区左右的边距（点）。
 const CONTENT_PADDING: f32 = 36.0;
-
-/// 建一帧要用的东西。
-pub struct Page<'a> {
-    pub settings: &'a Settings,
-
-    pub theme: WidgetTheme,
-
-    pub palette: &'a Palette,
-
-    pub scale: f32,
-
-    /// 右边内容区扣掉左右边距后的宽度（像素）。
-    pub content_width: f32,
-}
-
-impl Page<'_> {
-    pub fn px(&self, points: f32) -> f32 {
-        points * self.scale
-    }
-
-    pub fn gap(&self, points: f32) -> Size<LengthPercentage> {
-        let value = LengthPercentage::length(self.px(points));
-        Size {
-            width: value,
-            height: value,
-        }
-    }
-}
 
 pub fn view(
     ui: &mut Ui<Message>,
@@ -82,7 +47,7 @@ pub fn view(
     let content = content(ui, &page)?;
     let mut children = vec![sidebar, content];
     if let Some(popup) = settings.menu
-        && let Some(menu) = menus::menu(ui, &page, popup, (width as f32, height as f32))?
+        && let Some(menu) = parts::menus::menu(ui, &page, popup, (width as f32, height as f32))?
     {
         children.push(menu);
     }
@@ -159,17 +124,17 @@ fn page_children(
     id: PageId,
 ) -> Result<Vec<NodeId>, RenderError> {
     Ok(match id {
-        PageId::Input => input::input(ui, page)?,
-        PageId::Candidates => candidates::candidates(ui, page)?,
-        PageId::Language => language::language(ui, page)?,
-        PageId::Appearance => appearance::appearance(ui, page)?,
-        PageId::Shortcuts => shortcuts::shortcuts(ui, page)?,
-        PageId::Phrases => phrases::phrases(ui, page)?,
-        PageId::Dictionaries => dictionaries::dictionaries(ui, page)?,
-        PageId::Cloud => cloud::cloud(ui, page)?,
-        PageId::Stats => stats::stats(ui, page)?,
-        PageId::Advanced => advanced::advanced(ui, page)?,
-        PageId::About => about::about(ui, page)?,
+        PageId::Input => pages::input::input(ui, page)?,
+        PageId::Candidates => pages::candidates::candidates(ui, page)?,
+        PageId::Language => pages::language::language(ui, page)?,
+        PageId::Appearance => pages::appearance::appearance(ui, page)?,
+        PageId::Shortcuts => pages::shortcuts::shortcuts(ui, page)?,
+        PageId::Phrases => pages::phrases::phrases(ui, page)?,
+        PageId::Dictionaries => pages::dictionaries::dictionaries(ui, page)?,
+        PageId::Cloud => pages::cloud::cloud(ui, page)?,
+        PageId::Stats => pages::stats::stats(ui, page)?,
+        PageId::Advanced => pages::advanced::advanced(ui, page)?,
+        PageId::About => pages::about::about(ui, page)?,
     })
 }
 

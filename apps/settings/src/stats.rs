@@ -8,7 +8,7 @@ use qingjian_learning::{UsageStats, VocabularyBook};
 use qingjian_platform::GeneralConfig;
 use qingjian_translate::LevelTable;
 
-use crate::paths;
+use crate::system::paths;
 
 pub struct Stats {
     pub usage: UsageSummary,
@@ -52,14 +52,14 @@ fn language_name(language: Language) -> &'static str {
 /// 词汇等级表：macOS 在 `Qingjian.app/Contents/Resources/`，其他平台在随包根的 `assets/levels/`。
 fn level_table(language: Language) -> Option<PathBuf> {
     let name = format!("levels-{}.tsv", language.code());
-    let found = crate::paths::mac_resources()
+    let found = crate::system::paths::mac_resources()
         .into_iter()
         .map(|dir| dir.join(&name))
         .find(|path| path.is_file());
     if found.is_some() {
         return found;
     }
-    crate::paths::bundled(&format!("assets/levels/{name}"))
+    crate::system::paths::bundled(&format!("assets/levels/{name}"))
 }
 
 /// 千位分隔：`12345` → `12,345`。

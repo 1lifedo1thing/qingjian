@@ -52,7 +52,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/$BIN_NAME" "$APP/Contents/MacOS/$BIN_NAME"
 cp apps/macos/Info.plist "$APP/Contents/Info.plist"
 # 设置程序是独立的 .app（有自己的 Dock 图标与名字），装在输入法包里，菜单「设置…」用 open 打开它；
-# 随包数据它从外层 Qingjian.app 的 Resources 读（apps/settings/src/paths.rs）
+# 随包数据它从外层 Qingjian.app 的 Resources 读（apps/settings/src/system/paths.rs）
 SETTINGS_APP="$APP/Contents/Applications/QingjianSettings.app"
 mkdir -p "$SETTINGS_APP/Contents/MacOS" "$SETTINGS_APP/Contents/Resources"
 cp "$BIN_DIR/qingjian-settings" "$SETTINGS_APP/Contents/MacOS/qingjian-settings"

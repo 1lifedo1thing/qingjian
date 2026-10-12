@@ -12,9 +12,9 @@ use render_engine::{
 };
 
 use super::Page;
-use crate::icons::Glyph;
 use crate::message::Message;
 use crate::page_id::PageId;
+use crate::view::icons::Glyph;
 
 /// 侧栏宽度（点）。
 pub const WIDTH: f32 = 216.0;

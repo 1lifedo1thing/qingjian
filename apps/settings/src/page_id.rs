@@ -1,6 +1,6 @@
 //! 侧栏的各页，顺序与名字见 docs/design/settings.md。
 
-use crate::icons::Glyph;
+use crate::view::icons::Glyph;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PageId {
