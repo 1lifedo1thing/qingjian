@@ -368,6 +368,8 @@ api_key_env = "QINGJIAN_API_KEY"
 # 单次请求超时（毫秒）、停止敲键多久后才发请求（毫秒）
 timeout_ms = 5000
 debounce_ms = 300
+# 两次网络请求起始之间的最短间隔，失败也计入；缓存命中不等待
+min_interval_ms = 3000
 # 光标前 / 后最多发多少个字符——这是发往云端的上下文上限
 lookback = 64
 lookahead = 32
