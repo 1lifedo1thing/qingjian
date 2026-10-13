@@ -82,6 +82,7 @@ impl Engine {
     /// 候选的最后一个音节比输入长时（`kaif` 选了 开发），把输入吃完。
     /// 开了自动空格（[`Self::set_auto_space`]）时与上文、候选内部的中西文交界都补好空格。
     pub fn commit(&mut self, candidate: &Candidate) -> String {
+        self.panel = None;
         let lead = self.auto_space_before(&candidate.text);
         let text = self.commit_with(candidate, InputSource::from(candidate.kind), None);
         if lead { format!(" {text}") } else { text }

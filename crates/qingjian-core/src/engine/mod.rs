@@ -16,6 +16,7 @@ mod input_log;
 mod learning;
 mod marked;
 mod mode_keys;
+mod panel;
 mod prediction;
 mod privacy;
 mod query;
@@ -69,6 +70,7 @@ use crate::emoji::EmojiTable;
 use crate::english;
 use crate::fuzzy::{Expanded, FuzzyRules};
 use crate::history::InputHistory;
+use crate::panel::SymbolPanel;
 use crate::parser::{self, ParseError, Segmentation};
 use crate::punctuation::Punctuation;
 use crate::ranking::{self, Scored};
@@ -283,6 +285,9 @@ pub struct Engine {
     /// 每次查询最多插几个符号（配置 `[general] symbols`，缺省 1）。
     symbol_limit: usize,
 
+    /// 打开着的符号面板；`None` 是没开。上屏与清空时关掉。
+    panel: Option<SymbolPanel>,
+
     /// 辅码态：`None` 是拼音态，`Some` 是辅码态（空串 = 刚敲下触发键、码段还没开始）。
     /// 码段不进 `composition`：它与拼音分段记账、分段画（见 [`AuxSegment`]）。
     aux_code: Option<String>,
@@ -476,6 +481,7 @@ impl Engine {
             kaomoji_limit: 1,
             symbols: None,
             symbol_limit: 1,
+            panel: None,
             aux_code: None,
             aux_enabled: false,
             aux_show: false,

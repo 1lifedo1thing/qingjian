@@ -81,6 +81,8 @@ impl Host {
                 }
             }
             MenuAction::OpenDownload => open_with_system(&[qingjian_update::DOWNLOAD_URL]),
+            // 要当前会话的文本客户端，控制器在 menuAction: 里先接走了
+            MenuAction::OpenSymbolPanel => {}
         }
     }
 
