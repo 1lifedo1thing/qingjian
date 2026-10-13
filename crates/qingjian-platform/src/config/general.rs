@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 
 use super::scheme::{Scheme, scheme_label};
 use super::{
-    Appearance, CandidateRenderer, FontSize, LayoutMode, LogLevel, PreeditMode, ShiftLetter,
+    Appearance, CandidateRenderer, EmojiCount, FontSize, LayoutMode, LogLevel, PreeditMode,
+    ShiftLetter,
 };
 
 /// 每页最多几个候选：数字键只有 1–9。
@@ -80,8 +81,8 @@ pub struct GeneralConfig {
     /// 中文模式下整段是英文词或英文词的开头时给英文候选与补全（`hello`、`compa` → company）。关掉中文模式只出中文，英文模式照旧。
     pub english_in_chinese: bool,
 
-    /// 候选后面配 emoji（`kaixin` → 开心 😄）。关掉候选里就只有字词。
-    pub emoji: bool,
+    /// 候选后面一次最多配几个 emoji（`kaixin` → 开心 😄），0 时候选里只有字词。
+    pub emoji: EmojiCount,
 
     /// 中文模式下按住 Shift 敲的字母：交给应用（缺省）还是收进组句缓冲区参与匹配。
     /// 收进组句才能打出「C盘」这类混杂词（`Cpan` 与 `cpan` 一样匹配）。
@@ -171,7 +172,7 @@ impl Default for GeneralConfig {
             traditional: false,
             chinese_first: false,
             english_in_chinese: true,
-            emoji: true,
+            emoji: EmojiCount::default(),
             shift_letter: ShiftLetter::default(),
             english_mode: true,
             default_english: false,
