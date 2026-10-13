@@ -130,6 +130,13 @@ pub enum Setting {
 
     /// `[general] emoji`，弹出菜单：候选后面一次最多配几个 emoji。
     Emoji,
+
+    /// `[general] kaomoji`，弹出菜单：候选后面一次最多配几个颜文字。
+    Kaomoji,
+
+    /// `[general] symbols`，弹出菜单：候选后面一次最多配几个符号。
+    Symbols,
+
     /// `[general] auto_space`，勾选框：中西文之间自动补空格。
     AutoSpace,
 
@@ -244,6 +251,8 @@ impl Setting {
             Self::EnglishCandidates => 14,
             Self::ChineseFirst => 42,
             Self::Emoji => 62,
+            Self::Kaomoji => 66,
+            Self::Symbols => 67,
             Self::EnglishInChinese => 63,
             Self::AutoSpace => 65,
             Self::ShiftLetter => 50,
@@ -320,6 +329,8 @@ impl Setting {
             14 => Self::EnglishCandidates,
             42 => Self::ChineseFirst,
             62 => Self::Emoji,
+            66 => Self::Kaomoji,
+            67 => Self::Symbols,
             63 => Self::EnglishInChinese,
             65 => Self::AutoSpace,
             50 => Self::ShiftLetter,
@@ -421,6 +432,8 @@ mod tests {
             Setting::ShuangpinRawPreedit,
             Setting::Traditional,
             Setting::Emoji,
+            Setting::Kaomoji,
+            Setting::Symbols,
             Setting::EnglishInChinese,
             Setting::VerboseLog,
             Setting::OpenLogDirectory,
