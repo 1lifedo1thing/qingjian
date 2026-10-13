@@ -27,6 +27,9 @@ TSV 解析、查询与生成工具把 `lue` / `nue` 统一成 `lve` / `nve`。
 符号面板在 `panel/`：`SymbolPanel` 管分组与分类切换，`Engine::open_symbol_panel` 拿当前前 12 个候选词查 `keywords.tsv`、emoji 表与内置符号 / 颜文字表当搜索结果；
 条目是 `Emoji` / `Kaomoji` / `Symbol` 种类、`reading` 为中文名的候选，上屏走 `commit`（没有音节，吃掉整段）并关掉面板。格子移动复用 `Grid`。
 macOS 面板一律系统绘制（青简渲染器还没有面板），`candidates/view/panel.rs`；开着时云端词与模型重排不往格子里写。
+一行几格由 `PanelSection::columns` 按最宽条目定（`PANEL_COLUMNS` = 10，颜文字 6 或 4）。Windows 的面板状态在 Server 的 `dispatch/panel/`（格子 `PanelGrid`，按键 `dispatch/key/panel.rs`），
+窗口在 `ui/panel/`，用 Direct2D DC 渲染目标画在分层窗口合成器的 DIB 上（GDI 画不出彩色 emoji）。没在组句时从菜单打开：协议 `Frame::symbol_panel` 让空缓冲也不算空帧，
+`IndicatorState::symbol_panel` 随 `ModeSync` 让 DLL 进组句态吃键；老 DLL（协议 < 9）收到的颜文字 / 符号候选降级成 `Emoji`。
 双拼解码由 `Engine::decode` 传入当前模糊音规则：先取普通合法音节，失败时才保留能由模糊音补成合法音节的声韵组合（如 `suang` → `shuang`）。查询沿用带代价的模糊音展开，上屏沿用原读音与按键的消耗换算；不修改无模糊音时的 `Scheme::decode` 行为。
 
 模块：`composition`（缓冲区与光标；中文模式下 Shift+字母按小写进 `buffer` 参与匹配、大写记在 `shifted`，`typed_text` 还原后用于原样上屏）/ `parser` / `correction`（拼写纠错：整段一处编辑的候选纠正 + `typo` 音节级敲错变体表，后者进整句词图当带代价的边）/

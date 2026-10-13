@@ -45,7 +45,7 @@ pub use engine::{
 };
 pub use fuzzy::FuzzyRules;
 pub use history::InputHistory;
-pub use panel::{PanelGroup, PanelSection, SymbolPanel};
+pub use panel::{PANEL_COLUMNS, PanelGroup, PanelSection, SymbolPanel};
 pub use parser::{ParseError, Segmentation};
 pub use punctuation::Punctuation;
 pub use qingjian_dictionary as dictionary;

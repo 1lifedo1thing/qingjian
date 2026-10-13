@@ -2,7 +2,9 @@
 
 mod state;
 
-use qingjian_core::{Candidate, CandidateLayout, CandidateList, CloudWord, Query, SurroundingText};
+use qingjian_core::{
+    Candidate, CandidateKind, CandidateLayout, CandidateList, CloudWord, Query, SurroundingText,
+};
 use qingjian_platform::protocol::{Frame, PROTOCOL_VERSION, PreeditKind, PreeditSegment};
 
 pub(super) use self::state::{Composed, TypedKeys};
@@ -198,7 +200,8 @@ impl Router {
         self.raw_frame()
     }
 
-    /// 协议比 Server 老的 DLL 不认识 `AuxCode` 段，收到会整条消息解析失败；给它的码段降级成普通拼音段。
+    /// 协议比 Server 老的 DLL 不认识 `AuxCode` 段与颜文字、符号两种候选，收到会整条消息解析失败：
+    /// 码段降级成普通拼音段，那两种候选按 emoji 发（DLL 不看候选种类，只要解得出来）。
     fn downgrade_for_old_dll(&self, frame: &mut Frame) {
         if self.focused_dll_protocol() >= PROTOCOL_VERSION {
             return;
@@ -206,6 +209,14 @@ impl Router {
         for segment in &mut frame.preedit {
             if segment.kind == PreeditKind::AuxCode {
                 segment.kind = PreeditKind::Typed;
+            }
+        }
+        for candidate in &mut frame.candidates.items {
+            if matches!(
+                candidate.kind,
+                CandidateKind::Kaomoji | CandidateKind::Symbol
+            ) {
+                candidate.kind = CandidateKind::Emoji;
             }
         }
     }
@@ -221,6 +232,12 @@ impl Router {
         if let Some(translation) = &self.translation {
             return self.translation_frame(translation);
         }
+        let mut frame = self.composed_frame();
+        frame.symbol_panel = self.panel_open();
+        frame
+    }
+
+    fn composed_frame(&self) -> Frame {
         match &self.composed {
             None => Frame::default(),
             Some(Composed::Raw { text, cursor }) => Frame {
@@ -239,6 +256,7 @@ impl Router {
                 aux_code_show: self.config.aux_code_show,
                 sentence: None,
                 notice: self.notice.clone(),
+                symbol_panel: false,
             },
             Some(Composed::Candidates {
                 preedit,
@@ -269,6 +287,7 @@ impl Router {
                     aux_code_show: self.config.aux_code_show,
                     sentence: self.sentence.clone(),
                     notice: self.notice.clone(),
+                    symbol_panel: false,
                 }
             }
         }

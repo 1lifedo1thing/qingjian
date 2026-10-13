@@ -9,5 +9,5 @@ mod state;
 
 pub(crate) use catalog::{CATALOG, KEYWORDS};
 pub use group::PanelGroup;
-pub use section::PanelSection;
+pub use section::{PANEL_COLUMNS, PanelSection};
 pub use state::SymbolPanel;
