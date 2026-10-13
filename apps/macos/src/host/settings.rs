@@ -390,6 +390,9 @@ impl Host {
             (Setting::Emoji, SettingValue::Index(index)) => {
                 self.settings.set_value("general", "emoji", index as i64);
             }
+            (Setting::AutoSpace, SettingValue::Bool(on)) => {
+                self.settings.set_bool("general", "auto_space", on);
+            }
             (Setting::ShiftLetter, SettingValue::Bool(on)) => {
                 let mode = if on {
                     ShiftLetter::Compose
