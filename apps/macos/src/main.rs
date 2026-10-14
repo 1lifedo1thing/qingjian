@@ -66,6 +66,9 @@ fn main() {
     tracing::info!(class = %controller_class.name().to_string_lossy(), "控制器类已注册");
 
     let mtm = MainThreadMarker::new().expect("输入法入口必须在主线程");
+    // 先建 NSApplication 连上 WindowServer，host::init 才能建菜单栏状态项：
+    // macOS 13 上没连接时 statusItemWithLength 直接 NSCGSPanic，新系统会自己补连接
+    let app = NSApplication::sharedApplication(mtm);
     if let Err(error) = host::init(mtm, &info) {
         tracing::error!(%error, "Engine 初始化失败");
         std::process::exit(1);
@@ -85,5 +88,5 @@ fn main() {
         );
         std::process::exit(1);
     };
-    NSApplication::sharedApplication(mtm).run();
+    app.run();
 }
