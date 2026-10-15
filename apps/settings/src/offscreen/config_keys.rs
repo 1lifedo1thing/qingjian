@@ -11,7 +11,7 @@ use bamboo_slip::{
     App, Edit, Event, FontLibrary, Interaction, KeyCode, KeyPress, Modifiers, TextInput,
     TextPainter, Ui,
 };
-use qingjian_platform::Config;
+use qingjian_platform::{Config, KeyCombo};
 
 use crate::message::{FieldId, Message, Popup};
 use crate::page_id::PageId;
@@ -166,9 +166,14 @@ fn read(path: &Path) -> toml::Table {
         .unwrap_or_default()
 }
 
-/// 整数与同值的浮点数算一样（`Config` 里是 f32 的键，文件里可能写成整数）。
+/// 整数与同值的浮点数算一样（`Config` 里是 f32 的键，文件里可能写成整数）；修饰键与组合键按解析结果比，
+/// Windows 的写法（ctrl / alt / win）读回来是等价的 control / option / command。
 fn same(a: &toml::Value, b: &toml::Value) -> bool {
     match (a, b) {
+        (toml::Value::String(x), toml::Value::String(y)) if x != y => {
+            matches!((x.parse::<qingjian_platform::Modifiers>(), y.parse::<qingjian_platform::Modifiers>()), (Ok(p), Ok(q)) if p == q)
+                || matches!((x.parse::<KeyCombo>(), y.parse::<KeyCombo>()), (Ok(p), Ok(q)) if p == q)
+        }
         (toml::Value::Integer(i), toml::Value::Float(f))
         | (toml::Value::Float(f), toml::Value::Integer(i)) => (*i as f64 - f).abs() < 1e-6,
         (toml::Value::Float(x), toml::Value::Float(y)) => (x - y).abs() < 1e-4,
