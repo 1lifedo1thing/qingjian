@@ -7,7 +7,7 @@
 
 2026-09-23 起稿，2026-10-14 对着 main（2b96d75，0.2.1 之后）核过一遍。实现改了要回来改这里；文中的常数以代码为准。
 
-## 一、`Engine`：75 个字段，分六组
+## 一、`Engine`：73 个字段，分六组
 
 `Engine`（`engine/mod.rs`）是 Core 对外的唯一门面。字段按「谁改、多久改一次」分六组看：
 
@@ -17,7 +17,7 @@
 | **注入口** | `translator`、`english_translator`、`learner`、`logger`、`predictor`、`language_model`、`sentence_scorer`、`rescorer`、`meter`、`vocabulary`、`gloss_filler` | trait 对象，全有 `No*` 空实现；`learner` / `logger` 外面各罩一层 `MutedLearner` / `MutedLogger`，私密输入时吞掉写入 |
 | **配置** | `modes`、`fuzzy`、`shuangpin`、`shuangpin_raw_preedit`、`zhuyin`、`phonetic`、`full_width_punctuation`、`chinese_first`、`english_in_chinese`、`auto_space`、`emoji_limit` / `kaomoji_limit` / `symbol_limit`、`shift_letter_compose`、`interpolation`、`typo_costs`、`neural_weight` / `neural_margin` / `neural_context`、`aux_enabled` / `aux_show` / `aux_code_key` / `aux_keep_empty`、`traditional` | 壳用 `set_*`（`engine/setup.rs`）推进来；影响排序的顺手清缓存 |
 | **会话状态** | `composition`、`english_mode`、`punctuation`、`history`、`chain`、`recent_commits`、`recording`、`retype_snapshot`、`passthrough_pending`、`page_turns`、`composition_started`、`application`、`committed_since_break`、`displayed` | 每键变；正好是 `EngineSession` 的 14 个字段，可以整组换出（见下） |
-| **引擎级状态** | `private`、`aux_code`（码段）、`panel`（打开着的符号面板）、`rescoring_before`、`log_sequence`、`prediction_sequence`、`last_prediction_scope`、`last_prediction_kind`、`last_question_guess` | 每键变，但不随会话换 |
+| **引擎级状态** | `private`、`aux_code`（码段）、`panel`（打开着的符号面板）、`rescoring_before`、`log_sequence`、`prediction_sequence`、`pending_predictions`（在飞的请求按序号记种类与作用域） | 每键变，但不随会话换 |
 | **内部可变** | `span_cache`、`correction_cache`、`neural_cache`、`last_rescored`、`last_query`、`traditional_map` | `RefCell` / `Cell`：`query(&self)` 只读借用也要能往里写 |
 
 `sentence_scorer` 是同步打分器（CLI 评测用），`rescorer` 是把它挪到后台线程的 `RescoreWorker`（壳用，`set_async_sentence_scorer` 装）。
@@ -119,7 +119,7 @@ Linux 协议是一问一答、Server 不推送，重排结果靠 fcitx5 插件�
 
 | 旁路 | trait | 后台线程 | 壳怎么取结果 | 丢不丢得起 |
 |---|---|---|---|---|
-| 云联想 / 问字 | `Predictor` | `qingjian-predict` 自开，防抖 300 ms、缓存 64、超时 5 s | `poll_prediction()` | **丢得起**：每次请求带序号（`prediction_sequence`），只认最新的 |
+| 云联想 / 问字 | `Predictor` | `qingjian-predict` 自开，防抖 300 ms、缓存 64、超时 5 s | `poll_prediction()` | **丢得起**：组句联想与整句译文各只认最新一条，可同时在飞（`pending_predictions` 按序号记着），清空输入时连还没发的一起撤掉 |
 | 神经重排 | `SentenceScorer` | `rescoring::RescoreWorker` | 停键 80 ms 后 `request_rescoring()`，每 20 ms `poll_rescoring()`，最多等 2 s | 丢得起：没到的分数就按静态模型排 |
 | 释义兜底 | `GlossFiller` | `qingjian-predict` 独立线程，攒 1.5 s 或 8 个词 | `poll_glosses()` | **丢不起**：每个词都要问到，慢点没关系 |
 
