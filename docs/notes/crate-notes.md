@@ -115,7 +115,7 @@ Windows 的 `Router::recompose` 在输入清空时调用 `Engine::cancel_predict
   云释义的系统 prompt 在 `gloss/prompt.rs` 按学习语言分派：德语臂 `GERMAN_SYSTEM_PROMPT` 要求名词带冠词 der/die/das 且首字母大写、动词用不定式；
   返回译文经 `clean_text` 按语言设限，德语臂上限 40 字符（`MAX_GERMAN_CHARS`，西语臂 32），字符白名单 `is_latin_ext_char` 为西 / 德共用
   （拉丁扩展区间 0x00C0–0x024F，汉字与西里尔字母不收）。
-- 问字键（缺省 `u`）开头是问字模式（`PredictionKind::Question`，答案带读音、不校验拼音），`?` 开头要 `ModeKeys::question_mark` 开着才算（配置 `[shortcut] question_mark`，缺省关，壳用 `Engine::takes_question_mark` 决定空缓冲区的 `?` 是入口还是标点）；`PredictionKind::Translate` 是壳里快捷键触发的「翻译选中文字」
+- 问字键（缺省 `u`）开头是问字模式（`PredictionKind::Question`，答案带读音、不校验拼音），`?` 开头要 `ModeKeys::question_mark` 开着才算（配置 `[shortcut] question_mark`，缺省关，壳用 `Engine::takes_question_mark` 决定空缓冲区的 `?` 是入口还是标点）；问字 / 表达式两种前缀模式共用 `Engine::english_word_candidate`：整段命中英文词表（用户表优先）时本地给英文词候选、不发云请求，于是 u 开头英文词（`unchanged`）不被问字吞掉；`PredictionKind::Translate` 是壳里快捷键触发的「翻译选中文字」
   （双向：汉字为主译成学习语言，外文译回中文，`prediction::translation_target`），译文走结果的 `sentence`。
 
 ## crates/qingjian-format

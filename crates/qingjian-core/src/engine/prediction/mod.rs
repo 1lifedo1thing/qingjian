@@ -117,9 +117,10 @@ impl Engine {
             return None;
         }
         if question
-            && shortcut::unicode_form(self.modes().question_body(scope, self.zhuyin)).is_some()
+            && (shortcut::unicode_form(self.modes().question_body(scope, self.zhuyin)).is_some()
+                || self.english_word_candidate(scope).is_some())
         {
-            // 码点输入本地就能答，不问云端
+            // 码点输入本地出字符、整段是英文词本地出词，都不问云端
             return None;
         }
         let (kind, pinyin_source, before, after) = if question {
