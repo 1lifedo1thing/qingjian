@@ -150,7 +150,17 @@ impl Scheme {
     }
 
     /// 一个全拼音节的主写法（两个键）。测试与文档用；拆成声母 + 韵母后查表，零声母查零声母表。
+    ///
+    /// 入参接受全拼键盘别名（`jv`、`jve` 等）。先按原写法编码，保留首道等方案里
+    /// `lue`/`nue` 与 `lve`/`nve` 的故意分键；原写法查不到键位时（如 j/q/x/y 后的
+    /// `van`/`vn`，#531），再归一到主写法重试。
     pub fn encode(self, syllable: &str) -> Option<[char; 2]> {
+        self.encode_spelling(syllable)
+            .or_else(|| self.encode_spelling(canonical_syllable(syllable)))
+    }
+
+    /// 按给定拼写查两键编码，不做键盘别名归一。
+    fn encode_spelling(self, syllable: &str) -> Option<[char; 2]> {
         let table = self.table();
         if let Some((_, spellings)) = table.zero_initials.iter().find(|(s, _)| *s == syllable) {
             let mut chars = spellings[0].chars();
@@ -294,6 +304,19 @@ mod tests {
                     "qv" => "qu",
                     "xv" => "xu",
                     "yv" => "yu",
+                    // j/q/x/y 后 v 代 ü 的韵母系列（#531），同样解到主写法
+                    "jve" => "jue",
+                    "qve" => "que",
+                    "xve" => "xue",
+                    "yve" => "yue",
+                    "jvan" => "juan",
+                    "qvan" => "quan",
+                    "xvan" => "xuan",
+                    "yvan" => "yuan",
+                    "jvn" => "jun",
+                    "qvn" => "qun",
+                    "xvn" => "xun",
+                    "yvn" => "yun",
                     "eng" if scheme == Scheme::Xiaolang => "en",
                     "dia" if scheme == Scheme::Xiaolang => "dai",
                     "lia" if scheme == Scheme::Xiaolang => "lai",
