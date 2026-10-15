@@ -16,6 +16,7 @@ mod search;
 mod settings;
 mod shortcut;
 mod stats;
+mod support;
 mod system;
 mod view;
 
@@ -78,7 +79,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
     let config = config.ok_or("找不到配置文件的位置")?;
     let settings = Settings::load(config)?;
-    let mut options = WindowOptions::new("青简设置", (820.0, 620.0));
+    let mut options = WindowOptions::new("青简设置", (900.0, 680.0));
     options.min_size = (640.0, 420.0);
     run_window(settings, options)?;
     Ok(())

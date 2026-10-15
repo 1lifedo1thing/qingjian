@@ -11,9 +11,11 @@ mod sidebar;
 
 pub use page::Page;
 
+use bamboo_slip::FontSpec;
 use bamboo_slip::taffy::{Dimension, FlexDirection, LengthPercentage, NodeId, Rect, Size, Style};
 use bamboo_slip::{
-    Interact, Interaction, KeyCode, RenderError, ScrollArea, TITLEBAR, Ui, Visual, WidgetTheme,
+    Interact, Interaction, KeyCode, RenderError, ScrollArea, TITLEBAR, Ui, Visual, WidgetColors,
+    WidgetTheme,
 };
 
 use crate::message::Message;
@@ -25,6 +27,16 @@ use palette::{DARK, LIGHT};
 /// 右边内容区左右的边距（点）。
 const CONTENT_PADDING: f32 = 36.0;
 
+/// 设置程序的字号比引擎缺省大一档：13 点的正文在设置里读着吃力。
+fn widget_theme(colors: WidgetColors, scale: f32) -> WidgetTheme {
+    WidgetTheme {
+        font: FontSpec::new(15.0, 21.0),
+        small: 12.5,
+        control_height: 28.0,
+        ..WidgetTheme::new(colors, scale)
+    }
+}
+
 pub fn view(
     ui: &mut Ui<Message>,
     settings: &Settings,
@@ -34,7 +46,7 @@ pub fn view(
     let palette = if settings.system_dark { &DARK } else { &LIGHT };
     let page = Page {
         settings,
-        theme: WidgetTheme::new(palette.widgets, scale),
+        theme: widget_theme(palette.widgets, scale),
         palette,
         scale,
         content_width: width as f32 - (sidebar::WIDTH + CONTENT_PADDING * 2.0) * scale,
@@ -89,7 +101,7 @@ pub fn index(settings: &Settings) -> Vec<Entry> {
     let interaction = Interaction::new();
     let page = Page {
         settings,
-        theme: WidgetTheme::new(LIGHT.widgets, 1.0),
+        theme: widget_theme(LIGHT.widgets, 1.0),
         palette: &LIGHT,
         scale: 1.0,
         content_width: 600.0,

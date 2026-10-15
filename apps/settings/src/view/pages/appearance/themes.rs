@@ -133,7 +133,7 @@ pub fn cards(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
             Style::default(),
             Visual::Text {
                 text: listed.name().to_owned(),
-                style: page.theme.text(12.0, weight, color),
+                style: page.theme.text(page.theme.small, weight, color),
             },
             &[],
         )?;
