@@ -136,7 +136,7 @@
   - [ ] 额外翻页键：macOS、Linux
   - [ ] 高亮移动键：macOS、Linux
   - [ ] Ctrl + . 切换全半角标点：macOS、Linux
-  - [ ] 云服务用量统计：macOS、Linux
+  - [ ] 云服务用量统计：Linux
 
 ## 四、其他输入方案
 
