@@ -14,6 +14,7 @@ mod model;
 mod modifiers;
 mod optional_key_combo;
 mod page_keys;
+mod phrases;
 mod preedit_mode;
 mod scheme;
 mod shift_letter;
@@ -69,8 +70,8 @@ pub struct Config {
     /// 常规：学习语言、每页候选数、翻页键、外观。
     pub general: GeneralConfig,
 
-    /// 自定义短语；保存和读取均检查位置冲突。
-    #[serde(deserialize_with = "deserialize_phrases")]
+    /// 自定义短语；保存和读取均检查位置冲突。读的时候写错的条目只跳过它自己（见 [`phrases`]）。
+    #[serde(deserialize_with = "phrases::deserialize")]
     pub custom_phrases: Vec<qingjian_core::CustomPhrase>,
 
     /// 快捷键：前缀模式键（表达式 / 问字）与上屏译词的修饰键组合。
@@ -99,14 +100,6 @@ pub struct Config {
 
     /// 检查更新。
     pub update: UpdateConfig,
-}
-
-fn deserialize_phrases<'de, D: serde::Deserializer<'de>>(
-    deserializer: D,
-) -> Result<Vec<qingjian_core::CustomPhrase>, D::Error> {
-    let phrases = Vec::<qingjian_core::CustomPhrase>::deserialize(deserializer)?;
-    qingjian_core::custom_phrase::validate_phrases(&phrases).map_err(serde::de::Error::custom)?;
-    Ok(phrases)
 }
 
 /// 模板的 `[apps]` 一节（Linux）：应用按 fcitx5 认到的名字（X11 是 WM_CLASS，Wayland 是 app_id）。
@@ -417,11 +410,25 @@ impl Config {
             Err(e) => return Err(e.to_string()),
         };
         let mut document: DocumentMut = source.parse::<DocumentMut>().map_err(|e| e.to_string())?;
-        let old = document
+        let existing = document
             .get("custom_phrases")
             .and_then(toml_edit::Item::as_array_of_tables)
             .cloned()
             .unwrap_or_default();
+        // 读配置时跳过的条目界面上看不到，保存时原样留在文件里，等用户自己改
+        let checked = phrases::check(existing.iter().map(|table| {
+            toml::from_str::<qingjian_core::CustomPhrase>(&table.to_string())
+                .map_err(|e| e.message().to_owned())
+        }));
+        let mut old = toml_edit::ArrayOfTables::new();
+        let mut skipped = Vec::new();
+        for (table, item) in existing.iter().zip(&checked) {
+            if item.is_ok() {
+                old.push(table.clone());
+            } else {
+                skipped.push(table.clone());
+            }
+        }
         let mut used = std::collections::BTreeSet::new();
         // 先按输入码和位置匹配，重排或删除时注释跟随原规则。
         let mut matches: Vec<_> = phrases
@@ -473,6 +480,9 @@ impl Config {
             // 序列化按文档位置排序；统一锚点后，同组条目使用本次列表顺序。
             t.set_position(old.iter().filter_map(toml_edit::Table::position).min());
             tables.push(t);
+        }
+        for table in skipped {
+            tables.push(table);
         }
         document["custom_phrases"] = toml_edit::Item::ArrayOfTables(tables);
         write_file(path, &document.to_string()).map_err(|e| e.to_string())
