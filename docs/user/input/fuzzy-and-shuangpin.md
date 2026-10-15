@@ -40,7 +40,7 @@ description: 九条模糊音的开启方式与排序规则；全拼、八套双�
 - 首道双拼翘舌声母以 `v` 为 zh、`i` 为 ch、`e` 为 sh；零声母双写首字母或照全拼输入（`aa` `ai` `an` `ao` `oo` `ou` `en` `er`），ang 为 `ay`，e / ei / eng 以 `u` 引导（`ue` `ui` `uf`）；ue 在 `l`（`jl` → jue），üe 单独在 `b`（`lb` → lve）。
 - 拼音加加双拼翘舌声母以 `v` 为 zh、`u` 为 ch、`i` 为 sh（ch / sh 与小鹤、自然码相反）；主排高频韵母 ai→S、ao→D、an→F、ang→G、ei→W、en→R、eng→T，ing 在 `q`；ü 在 `v`（`nv` 女、`lv` 绿），üe 在 `x`（`jx` → jue、`nx` → nüe）；零声母以双写为主（`aa` `as` `af`、`ee` `er` `eq`、`oo` `op`，注意 en 是 `er`、er 是 `eq`），也兼容 o 前缀（`oa` `oe`）；不用 `;` 键。
 - 双拼下 v / u / i 均为音节键，[快捷输入](shortcuts.md) 中的算式与问字改为按住 `Shift` 输入：`Shift`+`V` 后接算式（`V1+2`），`Shift`+`U` 后接拼音或码点（`U4e00`），与搜狗、微软双拼一致。未输入拼音时才生效；模式键改过的，按改后的字母加 `Shift`。
-- 全拼输入 `lue` / `nue` 与词库形式 `lve` / `nve` 等价；j / q / x / y 后的 `v` 也认（`tiqv` → 提取，与微软、搜狗一致）。双拼统一解为 `lve` / `nve`。
+- 全拼输入 `lue` / `nue` 与词库形式 `lve` / `nve` 等价；j / q / x / y 后的 `v` 也认（`tiqv` → 提取，与微软、搜狗一致），带韵母时同样可用（`xvexi` → 学习、`jvan` → 卷、`yvn` → 云）。双拼统一解为 `lve` / `nve`。
 - 「嗯」按习惯用 `en` 输入（`enen` → 嗯嗯）；全拼下单独敲 `ng` 也出「嗯」，与其他拼音连写时请用 `en`。
 - 已知限制：`lo` 与 `luo` 同键，解为 luo。小浪方案中 `en` 与 `eng` 同码（`un`），统一解为 `en`；`dia`/`dai` 同码解为 `dai`，`lia`/`lai` 同码解为 `lai`，`nen`/`niang` 同码解为 `niang`。首道方案中 `den`/`dia` 同码（`dk`），解为 `den`。
 
