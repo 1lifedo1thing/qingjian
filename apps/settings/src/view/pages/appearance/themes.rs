@@ -10,8 +10,14 @@ use qingjian_render::Pixmap;
 use crate::message::{Message, SizeKind};
 use crate::view::Page;
 
-/// 主题卡片的大小（点），缩略图等比缩进去、四周留边。
+/// 主题卡片最窄多大（点）：一排放得下几张就放几张，再一起拉宽把这一排铺满，高与缩略图跟着等比放大。
 const TILE: (f32, f32) = (144.0, 76.0);
+
+/// 卡片之间的间距（点）。
+const TILE_GAP: f32 = 12.0;
+
+/// 卡片所在分组左右的内边距（点），见 `bamboo_slip::group`。
+const GROUP_PADDING: f32 = 16.0;
 
 const TILE_PADDING: f32 = 8.0;
 
@@ -75,6 +81,8 @@ pub fn cards(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
     let settings = page.settings;
     let current = settings.config.general.theme_id().to_owned();
     let colors = page.theme.colors;
+    let (width, height) = tile_size(page);
+    let zoom = width / page.px(TILE.0);
     let mut cards = Vec::new();
     for listed in settings.themes.themes() {
         let id = listed.id().to_owned();
@@ -83,15 +91,15 @@ pub fn cards(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
         let state = ui.state(key);
         let selected = id == current;
         let fit = (
-            page.px(TILE.0 - TILE_PADDING * 2.0),
-            page.px(TILE.1 - TILE_PADDING * 2.0),
+            width - page.px(TILE_PADDING * 2.0),
+            height - page.px(TILE_PADDING * 2.0),
         );
         let image = settings.previews.borrow_mut().fitted(
             &theme,
             settings.candidate_dark(),
             true,
             3,
-            page.scale * 0.5,
+            page.scale * 0.5 * zoom,
             [0.0, 0.0],
             fit,
         );
@@ -112,8 +120,8 @@ pub fn cards(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
                 justify_content: Some(JustifyContent::CENTER),
                 align_items: Some(bamboo_slip::taffy::AlignItems::CENTER),
                 size: Size {
-                    width: Dimension::length(page.px(TILE.0)),
-                    height: Dimension::length(page.px(TILE.1)),
+                    width: Dimension::length(width),
+                    height: Dimension::length(height),
                 },
                 ..Style::default()
             },
@@ -161,12 +169,21 @@ pub fn cards(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
         Style {
             flex_direction: FlexDirection::Row,
             flex_wrap: FlexWrap::Wrap,
-            gap: page.gap(12.0),
+            gap: page.gap(TILE_GAP),
             ..Style::default()
         },
         Visual::Group,
         &cards,
     )
+}
+
+/// 主题卡片的宽高（像素）：按分组里能用的宽度算一排放几张，再均分这一排。
+fn tile_size(page: &Page) -> (f32, f32) {
+    let available = page.content_width - page.px(GROUP_PADDING * 2.0);
+    let (min, gap) = (page.px(TILE.0), page.px(TILE_GAP));
+    let columns = ((available + gap) / (min + gap)).floor().max(1.0);
+    let width = ((available - gap * (columns - 1.0)) / columns).max(min);
+    (width, width * TILE.1 / TILE.0)
 }
 
 /// 一张位图按原像素贴（已按要放的地方画好大小）。
