@@ -259,8 +259,7 @@ P2C 自由生成实验：`--eval-text <集> --eval-generate data/models/hanzhang
 IMK 输入法，源码按 `app / host / imk / candidates / menubar / preferences` 分目录。
 
 **在 Linux 上也能对它做类型检查**（不链接、不产出可执行文件，但编译错误与 clippy 都查得到）。
-`qingjian-macos` 在非 Apple 平台上是硬 `compile_error!`、提交钩子也排除它，于是在 Linux 上改它等于盲改——
-`7e92a97` 缺一个 import、这个壳因此好几笔都编不过，就是这么漏的。办法是对 darwin 目标 check，
+`qingjian-macos` 在非 Apple 平台上是硬 `compile_error!`、提交钩子也排除它，于是在 Linux 上改它等于盲改。办法是对 darwin 目标 check，
 唯一的拦路虎是 `onig_sys`（candle → tokenizers 带进来的 C 库）要编 C，给它一个假的 pkg-config 条目让它改走「系统库」：
 
 ```bash
