@@ -3,6 +3,7 @@
 use qingjian_platform::{PAGE_KEY_OPTIONS, ShortcutConfig};
 
 use super::Settings;
+use crate::support::Feature;
 
 impl Settings {
     /// 快捷键页的各项（含翻页键、模式键）写回缺省；辅码触发键在「输入」页，不动。
@@ -32,9 +33,13 @@ impl Settings {
             "translate_selection",
             defaults.translate_selection.key_string(),
         );
-        if cfg!(windows) {
+        if Feature::HighlightKeys.here() {
             self.write("shortcut", "highlight_keys", defaults.highlight_keys.key());
+        }
+        if Feature::ExtraPageKeys.here() {
             self.write_list("shortcut", "extra_page_keys", &[]);
+        }
+        if Feature::TogglePunctuation.here() {
             self.write("shortcut", "toggle_punctuation", "");
         }
         self.recording = None;

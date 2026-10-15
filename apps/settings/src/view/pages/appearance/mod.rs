@@ -7,6 +7,7 @@ use bamboo_slip::{Button, Checkbox, RenderError, SettingRow, Stepper, Ui, group,
 use qingjian_platform::{Appearance, CandidateRenderer, LayoutMode, PreeditMode};
 
 use crate::message::{Message, Popup, SizeKind};
+use crate::support::Feature;
 use crate::view::Page;
 use crate::view::parts::controls::{choice, select, toggle};
 
@@ -45,7 +46,7 @@ pub fn appearance(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Rend
         |value| Message::set("general", "layout", value.key()),
     )?;
     let mut layout = SettingRow::new("排布").control(layout);
-    if cfg!(target_os = "macos") {
+    if Feature::HorizontalGrid.here() {
         let grid = Checkbox::new(general.horizontal_grid, "横排时 ↑ / ↓ 展开成多行")
             .disabled(general.layout != LayoutMode::Horizontal)
             .build(

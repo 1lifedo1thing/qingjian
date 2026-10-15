@@ -9,6 +9,7 @@ use super::shortcuts;
 use crate::library::Kind;
 use crate::message::{Message, Popup};
 use crate::shortcut::Shortcut;
+use crate::support::Feature;
 use crate::view::Page;
 use crate::view::parts::controls::{select, toggle_info, toggle_with};
 use crate::view::parts::lists::{entry_row, import_row, toggle_disabled};
@@ -81,8 +82,7 @@ pub fn input(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderErr
     out.push(section_title(ui, theme, "模糊音")?);
     out.push(group(ui, theme, &[fuzzy])?);
 
-    // 只有 Windows 的输入法加载码表；macOS、Linux 接上之前不显示，免得开了没用
-    if cfg!(windows) {
+    if Feature::AuxCode.here() {
         out.extend(aux_code(ui, page)?);
     }
     Ok(out)

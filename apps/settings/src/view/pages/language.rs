@@ -5,6 +5,7 @@ use bamboo_slip::{Checkbox, RenderError, SettingRow, Ui, Visual, group, section_
 use qingjian_platform::{DEFAULT_ENGLISH_CANDIDATES_ON, ShiftLetter, SwitchKey};
 
 use crate::message::Message;
+use crate::support::Feature;
 use crate::view::Page;
 use crate::view::parts::actions::with_notice;
 use crate::view::parts::controls::{choice, toggle, toggle_info};
@@ -27,9 +28,10 @@ pub fn language(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Render
         general.english_mode,
         false,
     )?];
-    // macOS 的切换键是 Caps Lock，由系统决定
-    if cfg!(windows) {
+    if Feature::SwitchKeys.here() {
         rows.push(switch_keys(ui, page)?);
+    }
+    if Feature::DefaultEnglish.here() {
         rows.push(toggle_info(
             ui,
             page,
@@ -39,6 +41,8 @@ pub fn language(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Render
             general.default_english,
             !general.english_mode,
         )?);
+    }
+    if Feature::RememberModePerApp.here() {
         rows.push(toggle_info(
             ui,
             page,
@@ -111,8 +115,7 @@ pub fn language(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Render
             .control(chinese)
             .build(ui, theme)?,
     ];
-    // macOS 英文模式一律半角
-    if cfg!(windows) {
+    if Feature::EnglishPunctuation.here() {
         let english = choice(
             ui,
             page,
@@ -137,8 +140,7 @@ pub fn language(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Render
         general.punct_commits,
         false,
     )?);
-    // 要读应用里光标前的字，目前只有 macOS 接了
-    if cfg!(target_os = "macos") {
+    if Feature::AutoSpace.here() {
         rows.push(toggle_info(
             ui,
             page,
@@ -152,7 +154,7 @@ pub fn language(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Render
     out.push(section_title(ui, theme, "标点")?);
     out.push(group(ui, theme, &rows)?);
 
-    if cfg!(windows) {
+    if Feature::StatusBar.here() {
         let status = toggle(
             ui,
             page,

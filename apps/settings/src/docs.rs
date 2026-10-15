@@ -321,26 +321,9 @@ mod tests {
         let index = crate::view::index(&settings);
         let _ = std::fs::remove_dir_all(&dir);
         // 只在别的平台显示的行这个平台上建不出来；短语卡片里的行只在卡片打开时建
-        let elsewhere = |page: PageId, row: &str| {
-            (!cfg!(windows)
-                && [
-                    (PageId::Input, "启用"),
-                    (PageId::Input, "触发键"),
-                    (PageId::Input, "导入码表"),
-                    (PageId::Language, "切换键"),
-                    (PageId::Language, "默认英文模式"),
-                    (PageId::Language, "按应用记住中英模式"),
-                    (PageId::Shortcuts, "额外翻页键"),
-                    (PageId::Shortcuts, "高亮移动键"),
-                    (PageId::Shortcuts, "Ctrl + . 切换全半角标点"),
-                ]
-                .contains(&(page, row)))
-                || (!cfg!(target_os = "macos")
-                    && ["也用系统的文本替换", "中文与英文、数字之间自动加空格"].contains(&row))
-                || (page == PageId::Phrases && row == "位置")
-        };
         for (page, row, ..) in LINKS {
-            if elsewhere(*page, row) {
+            if crate::support::elsewhere(*page, row) || (*page == PageId::Phrases && *row == "位置")
+            {
                 continue;
             }
             assert!(

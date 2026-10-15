@@ -13,6 +13,7 @@ use qingjian_predict::ApiUsageStats;
 
 use crate::message::Message;
 use crate::stats::{group_digits, hanzi_text, scale_line};
+use crate::support::Feature;
 use crate::view::Page;
 
 /// 等级表的四列。
@@ -70,8 +71,7 @@ pub fn stats(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderErr
         }
     }
 
-    // 目前只有 Windows 的输入法记云服务用量
-    if !cfg!(windows) {
+    if !Feature::ApiUsage.here() {
         return Ok(out);
     }
     out.push(section_title(ui, theme, "云服务用量")?);

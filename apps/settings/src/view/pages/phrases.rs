@@ -11,6 +11,7 @@ use bamboo_slip::{
 };
 
 use crate::message::{FieldId, Message};
+use crate::support::Feature;
 use crate::view::Page;
 use crate::view::parts::actions::with_notice;
 use crate::view::parts::controls::toggle_info;
@@ -42,7 +43,7 @@ pub fn phrases(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderE
     out.push(section_title(ui, theme, "短语")?);
     out.push(group(ui, theme, &rows)?);
 
-    if cfg!(target_os = "macos") {
+    if Feature::SystemTextReplacements.here() {
         let replacements = toggle_info(
             ui,
             page,
