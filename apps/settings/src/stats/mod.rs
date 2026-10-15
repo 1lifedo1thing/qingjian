@@ -1,31 +1,48 @@
-//! 统计页的数：输入量（`usage.tsv`）、词汇（`user-vocab.tsv`，有等级表时按级分）与云服务的 Token 用量。输入法记、这里只读，进统计页时读一次。
-//! 还有几种给人看的写法：千位分隔、万 / 亿字、跟一本书比。
+//! 统计页的数：输入量（`usage-hourly.tsv`，按天、按小时）、词汇（`user-vocab.tsv`，有等级表时按级分）与云服务的请求和 Token。
+//! 输入法记、这里只读，进统计页时读一次。还有几种给人看的写法：千位分隔、万 / 亿字、跟一本书比。
+
+mod cloud;
+mod input;
+mod numbers;
+
+pub use cloud::CloudStats;
+pub use input::{InputStats, clean_rate, first_choice_rate, keys_per_hanzi};
+pub use numbers::{group_digits, hanzi_text, scale_line, tokens_text};
 
 use std::path::PathBuf;
 
-use qingjian_core::{Language, UsageSummary, VocabularySummary, book_scale};
+use jiff::civil::Date;
+use qingjian_core::{Language, Usage, VocabularySummary};
 use qingjian_learning::{UsageStats, VocabularyBook};
 use qingjian_platform::GeneralConfig;
-use qingjian_predict::{API_USAGE_FILE, ApiUsageStats};
+use qingjian_predict::{API_USAGE_FILE, ApiUsageHours, ApiUsageStats};
 use qingjian_translate::LevelTable;
 
 use crate::system::paths;
 
 pub struct Stats {
-    pub usage: UsageSummary,
+    pub input: InputStats,
 
     /// 学习语言的名字与词汇汇总；学习语言关着为 `None`。
     pub vocabulary: Option<(&'static str, VocabularySummary)>,
 
-    /// 云服务请求与 Token 用量；文件读不出来为 `None`。
-    pub api: Option<ApiUsageStats>,
+    pub cloud: CloudStats,
 }
 
 impl Stats {
     pub fn load(general: &GeneralConfig) -> Self {
-        let today = jiff::Zoned::now().date();
+        let now = jiff::Zoned::now().datetime();
+        let today = now.date();
         let dir = paths::user_dir().unwrap_or_default();
-        let usage = UsageStats::open(dir.join("usage.tsv")).summary_on(today);
+        let hour = now.hour() as u8;
+        let yesterday = today.yesterday().unwrap_or(today);
+        let usage = UsageStats::open(&dir);
+        let input = InputStats {
+            today,
+            hour,
+            days: usage.days(),
+            hours: last_24(usage.hours_on(yesterday), usage.hours_on(today), hour),
+        };
         let vocabulary = (!general.learning_language_off()).then(|| {
             let language = general
                 .learning_language
@@ -39,15 +56,69 @@ impl Stats {
             }
             (language_name(language), book.summary_on(language, today))
         });
-        let api = ApiUsageStats::load(&dir.join(API_USAGE_FILE))
+        let totals = ApiUsageStats::load(&dir.join(API_USAGE_FILE))
             .inspect_err(|error| tracing::warn!(%error, "API 用量统计读取失败"))
             .ok();
+        let hours = ApiUsageHours::load(&dir)
+            .inspect_err(|error| tracing::warn!(%error, "按小时的 API 用量读取失败"))
+            .unwrap_or_default();
+        let cloud = CloudStats {
+            today,
+            hour,
+            totals,
+            days: hours.days(),
+            hours: last_24(hours.hours_on(yesterday), hours.hours_on(today), hour),
+        };
         Self {
-            usage,
+            input,
             vocabulary,
-            api,
+            cloud,
         }
     }
+}
+
+/// `from` 到 `to`（含两头）这几天加起来。
+fn sum_days<T: Copy + Default + std::ops::AddAssign>(
+    days: &std::collections::BTreeMap<Date, T>,
+    from: Date,
+    to: Date,
+) -> T {
+    let mut total = T::default();
+    for value in days.range(from..=to).map(|(_, value)| *value) {
+        total += value;
+    }
+    total
+}
+
+/// 过去 24 小时：从昨天这个钟点的下一个小时排到现在这个钟点（最后一格）。
+pub fn last_24<T: Copy>(yesterday: [T; 24], today: [T; 24], hour: u8) -> [T; 24] {
+    std::array::from_fn(|index| {
+        let back = 23 - index;
+        let hour = usize::from(hour);
+        if back <= hour {
+            today[hour - back]
+        } else {
+            yesterday[hour + 24 - back]
+        }
+    })
+}
+
+/// 这一周的星期日（一周从周日算，同代码托管网站的提交日历）。
+pub fn week_start(date: Date) -> Date {
+    let back = i64::from(date.weekday().to_sunday_zero_offset());
+    date.saturating_sub(jiff::Span::new().days(back))
+}
+
+/// 这个月的 1 号。
+fn first_of_month(date: Date) -> Date {
+    date.first_of_month()
+}
+
+/// 速度（字 / 分钟）：记了时长的那些上屏打出的汉字除以打字时长，老记录与原样上屏只有字数、不在里面。
+/// 打字不到 `min_ms` 不算，免得几个字就出个离谱的数。
+fn speed(usage: &Usage, min_ms: u64) -> Option<f64> {
+    (usage.typing_ms >= min_ms)
+        .then(|| usage.typed_hanzi as f64 * 60_000.0 / usage.typing_ms as f64)
 }
 
 fn language_name(language: Language) -> &'static str {
@@ -74,73 +145,20 @@ fn level_table(language: Language) -> Option<PathBuf> {
     crate::system::paths::bundled(&format!("assets/levels/{name}"))
 }
 
-/// 千位分隔：`12345` → `12,345`。
-pub fn group_digits(value: u64) -> String {
-    let digits = value.to_string();
-    let mut out = String::with_capacity(digits.len() + digits.len() / 3);
-    for (index, digit) in digits.chars().enumerate() {
-        if index > 0 && (digits.len() - index).is_multiple_of(3) {
-            out.push(',');
-        }
-        out.push(digit);
-    }
-    out
-}
-
-/// 字数：万以下写整数（`2,500 字`），万以上一位小数（`12.3 万字`），亿以上同理。
-pub fn hanzi_text(value: u64) -> String {
-    const WAN: f64 = 10_000.0;
-    const YI: f64 = 100_000_000.0;
-    let value_f = value as f64;
-    if value_f >= YI {
-        format!("{} 亿字", trim_decimal(value_f / YI))
-    } else if value_f >= WAN {
-        format!("{} 万字", trim_decimal(value_f / WAN))
-    } else {
-        format!("{} 字", group_digits(value))
-    }
-}
-
-/// 「累计 12.3 万字，约等于 1.7 本《活着》（约 12 万字）」；一个字没有时不比。
-pub fn scale_line(hanzi: u64) -> String {
-    if hanzi == 0 {
-        return "还没有输入记录，打几个字再来看".to_owned();
-    }
-    let (book, ratio) = book_scale(hanzi);
-    format!(
-        "累计 {}，约等于 {} 本《{}》（约 {}）",
-        hanzi_text(hanzi),
-        format_ratio(ratio),
-        book.title,
-        hanzi_text(book.hanzi)
-    )
-}
-
-/// 一位小数，`.0` 去掉。
-fn trim_decimal(value: f64) -> String {
-    let text = format!("{value:.1}");
-    text.strip_suffix(".0").map_or(text.clone(), str::to_owned)
-}
-
-/// 倍数：不到 10 倍留一位小数，再多就取整。
-fn format_ratio(ratio: f64) -> String {
-    if ratio >= 10.0 {
-        format!("{}", ratio.round() as u64)
-    } else {
-        trim_decimal(ratio)
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::last_24;
 
     #[test]
-    fn numbers_read_in_chinese_units() {
-        assert_eq!(group_digits(1_234_567), "1,234,567");
-        assert_eq!(hanzi_text(9_999), "9,999 字");
-        assert_eq!(hanzi_text(123_000), "12.3 万字");
-        assert_eq!(hanzi_text(250_000_000), "2.5 亿字");
-        assert!(scale_line(204_000).starts_with("累计 20.4 万字，约等于"));
+    fn last_24_hours_end_at_the_current_one() {
+        let yesterday: [u32; 24] = std::array::from_fn(|hour| 100 + hour as u32);
+        let today: [u32; 24] = std::array::from_fn(|hour| hour as u32);
+        let hours = last_24(yesterday, today, 2);
+        // 昨天 3 点到 23 点，接着今天 0 点到 2 点
+        assert_eq!(hours[0], 103);
+        assert_eq!(hours[20], 123);
+        assert_eq!(hours[21], 0);
+        assert_eq!(hours[23], 2);
+        assert_eq!(last_24(yesterday, today, 23), today);
     }
 }

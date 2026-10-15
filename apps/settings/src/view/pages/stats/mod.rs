@@ -1,18 +1,20 @@
-//! 「统计」页：今天、最近 7 天、累计三张数字卡，累计跟一本书比；词汇（学习语言的译词见过、看熟、上屏过，有等级表时按级列）；
-//! 云服务的请求次数与 Token 用量（Windows）。
+//! 「统计」页：顶上分「输入 / 云服务」两层，每层是四张数字卡（今天、本周、本月、累计）、按天的格子图、过去 24 小时的柱状图和详情；
+//! 输入层末尾是词汇（学习语言的译词见过、看熟、上屏过，有等级表时按级列）。云服务层只在记用量的平台显示。
+
+mod charts;
+mod cloud;
+mod input;
 
 use bamboo_slip::taffy::{
     AlignItems, Dimension, FlexDirection, JustifyContent, LengthPercentage, NodeId, Rect, Size,
     Style,
 };
-use bamboo_slip::{
-    BoxPaint, Fill, RenderError, SettingRow, Ui, Visual, group, paragraph, section_title,
-};
-use qingjian_core::{Usage, VocabularySummary};
+use bamboo_slip::{BoxPaint, Fill, RenderError, Segmented, SettingRow, Ui, Visual, paragraph};
+use qingjian_core::VocabularySummary;
 use qingjian_predict::ApiUsageStats;
 
 use crate::message::Message;
-use crate::stats::{group_digits, hanzi_text, scale_line};
+use crate::stats::group_digits;
 use crate::support::Feature;
 use crate::view::Page;
 
@@ -20,72 +22,123 @@ use crate::view::Page;
 const LEVEL_COLUMNS: [&str; 4] = ["词表", "见过", "看熟", "上屏过"];
 
 pub fn stats(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderError> {
-    let theme = &page.theme;
     let Some(stats) = &page.settings.stats else {
         return Ok(Vec::new());
     };
-    let usage = &stats.usage;
     let mut out = Vec::new();
+    let cloud = Feature::ApiUsage.here() && page.settings.stats_cloud;
+    if Feature::ApiUsage.here() {
+        let tabs = Segmented::new(&["输入", "云服务"], usize::from(cloud)).build(
+            ui,
+            &page.theme,
+            "stats-tab",
+            |index| Message::StatsCloud(index == 1),
+        )?;
+        out.push(ui.scene().node(
+            Style {
+                flex_direction: FlexDirection::Row,
+                ..Style::default()
+            },
+            Visual::Group,
+            &[tabs],
+        )?);
+    }
+    if cloud {
+        out.extend(cloud::cloud(ui, page, &stats.cloud)?);
+    } else {
+        out.extend(input::input(
+            ui,
+            page,
+            &stats.input,
+            stats.vocabulary.as_ref(),
+        )?);
+    }
+    Ok(out)
+}
 
-    let cards = [
-        card(ui, page, "今天", &usage.today)?,
-        card(ui, page, "最近 7 天", &usage.week)?,
-        card(ui, page, "累计", &usage.total)?,
-    ];
-    let cards = ui.scene().node(
+/// 四张数字卡排成一行。
+fn cards(ui: &mut Ui<Message>, page: &Page, cards: &[NodeId]) -> Result<NodeId, RenderError> {
+    ui.scene().node(
         Style {
             flex_direction: FlexDirection::Row,
             gap: page.gap(10.0),
             ..Style::default()
         },
         Visual::Group,
-        &cards,
-    )?;
-    out.push(section_title(ui, theme, "输入量")?);
-    out.push(cards);
-    let scale = scale_line(usage.total.hanzi);
-    let mut row = SettingRow::new(&scale).info(
-        "数的是上屏的文字：选一个词算一个中文词，整句按词切开数；英文候选、原样上屏的英文词与英文译词算英文词。只在这台电脑上数",
-    );
-    let since;
-    if let Some(date) = &usage.since {
-        since = format!("自 {date} 起，有输入的 {} 天", usage.days);
-        row = row.detail(&since);
-    }
-    let row = row.build(ui, theme)?;
-    out.push(group(ui, theme, &[row])?);
-
-    match &stats.vocabulary {
-        Some((language, vocabulary)) => {
-            out.push(section_title(ui, theme, &format!("词汇（{language}）"))?);
-            let mut rows = vec![note(ui, page, &vocabulary_line(vocabulary))?];
-            if !vocabulary.levels.is_empty() {
-                rows.push(levels(ui, page, vocabulary)?);
-            }
-            out.push(group(ui, theme, &rows)?);
-        }
-        None => {
-            out.push(section_title(ui, theme, "词汇")?);
-            let off = note(ui, page, "学习语言关着，不统计词汇")?;
-            out.push(group(ui, theme, &[off])?);
-        }
-    }
-
-    if !Feature::ApiUsage.here() {
-        return Ok(out);
-    }
-    out.push(section_title(ui, theme, "云服务用量")?);
-    let rows = match &stats.api {
-        Some(api) => vec![note(ui, page, &requests_line(api))?, tokens(ui, page, api)?],
-        None => vec![note(
-            ui,
-            page,
-            "用量记录读不出来，原有记录还在，稍后再进这一页看",
-        )?],
-    };
-    out.push(group(ui, theme, &rows)?);
-    Ok(out)
+        cards,
+    )
 }
+
+/// 一张数字卡：标题、大字的数，下面几行小字。
+fn card(
+    ui: &mut Ui<Message>,
+    page: &Page,
+    title: &str,
+    value: &str,
+    lines: &[String],
+) -> Result<NodeId, RenderError> {
+    let theme = &page.theme;
+    let colors = &theme.colors;
+    let mut children = vec![
+        text(ui, page, title, theme.small + 1.0, 600, colors.secondary)?,
+        text(ui, page, value, 21.0, 600, colors.text)?,
+    ];
+    for line in lines {
+        children.push(text(ui, page, line, theme.small, 400, colors.secondary)?);
+    }
+    let space = LengthPercentage::length(page.px(14.0));
+    ui.scene().node(
+        Style {
+            flex_direction: FlexDirection::Column,
+            flex_grow: 1.0,
+            flex_basis: Dimension::length(0.0),
+            gap: page.gap(4.0),
+            padding: Rect {
+                left: space,
+                right: space,
+                top: space,
+                bottom: space,
+            },
+            ..Style::default()
+        },
+        Visual::Box(BoxPaint {
+            fill: Some(Fill::Solid(colors.surface)),
+            border: Some((page.px(1.0), colors.line)),
+            radius: page.px(theme.radius * 1.5),
+        }),
+        &children,
+    )
+}
+
+/// 详情的一行：标题（可带 ⓘ）、右边的数。
+fn detail(
+    ui: &mut Ui<Message>,
+    page: &Page,
+    title: &str,
+    info: Option<&str>,
+    value: &str,
+) -> Result<NodeId, RenderError> {
+    let theme = &page.theme;
+    let value = text(ui, page, value, theme.font.size, 500, theme.colors.text)?;
+    let mut row = SettingRow::new(title).control(value);
+    if let Some(info) = info {
+        row = row.info(info);
+    }
+    row.build(ui, theme)
+}
+
+/// 0.75 → `75%`。
+fn percent(rate: f64) -> String {
+    format!("{:.0}%", rate * 100.0)
+}
+
+/// `2026年10月15日`：格子图能跨年，最多、最快的一天也可能在去年。
+fn full_date(date: jiff::civil::Date) -> String {
+    format!("{}年{}月{}日", date.year(), date.month(), date.day())
+}
+
+/// 还没有记录时详情里的数。
+const NONE_YET: &str = "还没有记录";
 
 /// 「请求 12 次，收到 11 次，失败 1 次」，还在等的、没报用量的另说。
 fn requests_line(api: &ApiUsageStats) -> String {
@@ -140,61 +193,6 @@ fn tokens(ui: &mut Ui<Message>, page: &Page, api: &ApiUsageStats) -> Result<Node
         },
         Visual::Group,
         &rows,
-    )
-}
-
-/// 一张数字卡：标题、大字的汉字数，下面两行小字。
-fn card(
-    ui: &mut Ui<Message>,
-    page: &Page,
-    title: &str,
-    usage: &Usage,
-) -> Result<NodeId, RenderError> {
-    let theme = &page.theme;
-    let colors = &theme.colors;
-    let title = text(ui, page, title, theme.small + 1.0, 600, colors.secondary)?;
-    let hanzi = text(ui, page, &hanzi_text(usage.hanzi), 22.0, 600, colors.text)?;
-    let words = text(
-        ui,
-        page,
-        &format!(
-            "中文词 {} · 英文词 {}",
-            group_digits(usage.words),
-            group_digits(usage.english_words)
-        ),
-        theme.small,
-        400,
-        colors.secondary,
-    )?;
-    let commits = text(
-        ui,
-        page,
-        &format!("上屏 {} 次", group_digits(usage.commits)),
-        theme.small,
-        400,
-        colors.secondary,
-    )?;
-    let space = LengthPercentage::length(page.px(14.0));
-    ui.scene().node(
-        Style {
-            flex_direction: FlexDirection::Column,
-            flex_grow: 1.0,
-            flex_basis: Dimension::length(0.0),
-            gap: page.gap(4.0),
-            padding: Rect {
-                left: LengthPercentage::length(page.px(16.0)),
-                right: space,
-                top: space,
-                bottom: space,
-            },
-            ..Style::default()
-        },
-        Visual::Box(BoxPaint {
-            fill: Some(Fill::Solid(colors.surface)),
-            border: Some((page.px(1.0), colors.line)),
-            radius: page.px(theme.radius * 1.5),
-        }),
-        &[title, hanzi, words, commits],
     )
 }
 

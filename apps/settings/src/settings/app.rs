@@ -183,6 +183,7 @@ impl App for Settings {
                 }
             }
             Message::ToggleSources => self.sources_open = !self.sources_open,
+            Message::StatsCloud(cloud) => self.stats_cloud = cloud,
             Message::Search(edit) => {
                 self.search.edit.apply(&edit);
                 if !self.search.active() {

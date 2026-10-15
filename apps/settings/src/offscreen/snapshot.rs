@@ -127,6 +127,54 @@ pub fn run(config: Option<&Path>, directory: &Path) -> Result<(), Box<dyn std::e
     shot(&mut runner, "系统深色：设置窗口自己也换深色")?;
     click(&mut runner, Key::ROOT.child("nav").child(PageId::Language))?;
     shot(&mut runner, "中英文（深色）")?;
+    runner.app_mut().set_system_dark(false);
+    stats(&mut runner, &mut shot)?;
+    Ok(())
+}
+
+/// 统计页两层，装上样例数据（真数据多半太少，看不出图表的样子）；各悬停一格、一根柱看浮出的说明。
+fn stats(
+    runner: &mut Runner<Settings>,
+    shot: &mut impl FnMut(&mut Runner<Settings>, &str) -> Result<(), Box<dyn std::error::Error>>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    click(runner, Key::ROOT.child("nav").child(PageId::Stats))?;
+    let now = jiff::Zoned::now().datetime();
+    let (input, cloud) = super::sample::stats(now.date(), now.hour() as u8);
+    if let Some(stats) = runner.app_mut().stats.as_mut() {
+        stats.input = input;
+        stats.cloud = cloud;
+    }
+    runner.rebuild(SCALE, SIZE, Instant::now())?;
+    let cell = |local: &str, column: usize, row: usize| {
+        Key::ROOT.child((Key::ROOT.child(local), column, row))
+    };
+    let bar = |local: &str, hour: usize| Key::ROOT.child((Key::ROOT.child(local), hour));
+    for (tab, days, hours) in [
+        ("输入", "input-days", "input-hours"),
+        ("云服务", "cloud-days", "cloud-hours"),
+    ] {
+        runner.app_mut().stats_cloud = tab == "云服务";
+        runner.rebuild(SCALE, SIZE, Instant::now())?;
+        hover(runner, cell(days, 50, 2))?;
+        runner.rebuild(SCALE, SIZE, Instant::now())?;
+        shot(runner, &format!("统计·{tab}（样例数据）：悬停一格"))?;
+        reveal(runner, bar(hours, 10))?;
+        hover(runner, bar(hours, 10))?;
+        runner.rebuild(SCALE, SIZE, Instant::now())?;
+        shot(runner, &format!("统计·{tab}：过去 24 小时，悬停第 11 根"))?;
+        let area = content(runner);
+        hover(runner, area)?;
+        runner.handle(&Event::Scroll {
+            dx: 0.0,
+            dy: 5000.0,
+        });
+        shot(runner, &format!("统计·{tab}：滚到底"))?;
+        hover(runner, area)?;
+        runner.handle(&Event::Scroll {
+            dx: 0.0,
+            dy: -5000.0,
+        });
+    }
     Ok(())
 }
 

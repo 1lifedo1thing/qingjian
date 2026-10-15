@@ -140,7 +140,7 @@ macOS 上，「自定义短语」页的「也用系统的文本替换」（缺�
 
 ## 统计
 
-输入量、词汇量，Windows 上还有云服务的请求次数与 Token 用量，见 [统计](../learning/statistics.md)。
+输入量、速度、近一年的输入日历与词汇量，macOS 与 Windows 上还有云服务的请求次数与 Token 用量，见 [统计](../learning/statistics.md)。
 
 ## 高级
 

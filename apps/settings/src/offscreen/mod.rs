@@ -2,4 +2,5 @@
 
 #[cfg(test)]
 mod config_keys;
+mod sample;
 pub mod snapshot;

@@ -64,6 +64,8 @@ pub enum Message {
     CheckUpdate,
     /// 展开 / 收起「关于」页的数据来源。
     ToggleSources,
+    /// 统计页切到「云服务」层（`false` 回「输入」层）。
+    StatsCloud(bool),
     /// 搜索框里打字。
     Search(Edit),
     /// 搜索框里回车：跳到第一条结果。

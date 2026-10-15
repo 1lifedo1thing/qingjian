@@ -87,6 +87,9 @@ pub struct Settings {
     /// 统计页的数，进统计页时读。
     pub stats: Option<Stats>,
 
+    /// 统计页在「云服务」层。
+    pub stats_cloud: bool,
+
     waker: Option<Waker>,
 
     /// 「关于」页的数据来源展开着。
@@ -155,6 +158,7 @@ impl Settings {
             import: ImportJob::default(),
             phrase: None,
             stats: None,
+            stats_cloud: false,
             waker: None,
             search: Search::default(),
             ctrl_space: system_ctrl_space(),
