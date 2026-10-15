@@ -11,4 +11,4 @@ SPDX 写法：`GPL-3.0-or-later OR LicenseRef-Qingjian-Commercial`。
 
 ## 外部贡献
 
-外部贡献按 MIT-0 许可，见 [docs/contributing.md](../../docs/contributing.md) 的「外部 PR」。
+本 crate 的文字、字体等部分是从 `crates/qingjian-render` 拆出来的，其中外部贡献者的改动（#51、#348）已取得作者同意另以商业许可再授权；之后的贡献按 MIT-0 许可，见 [docs/contributing.md](../../docs/contributing.md) 的「外部 PR」。
