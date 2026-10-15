@@ -3554,6 +3554,7 @@ name = "qingjian-predict"
 version = "0.1.1"
 dependencies = [
  "async-openai",
+ "jiff",
  "qingjian-core",
  "reqwest",
  "serde",
