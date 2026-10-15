@@ -40,7 +40,7 @@ qingjian/
 │   ├── qingjian-core/          # composition / parser / correction / candidate / ranking / sentence / engine …（下面单列）
 │   ├── qingjian-dictionary/    # 词库加载与查询
 │   ├── qingjian-translate/     # 候选翻译 annotation
-│   ├── qingjian-learning/      # 用户词频、用户词、个人英文词、个人 n-gram、个人敲错表（user.tsv / user-words.tsv / user-english.tsv / user-ngram.tsv / user-typos.tsv）、输入日志（input-log.jsonl）、输入统计（usage.tsv）、词汇记录（user-vocab.tsv）
+│   ├── qingjian-learning/      # 用户词频、用户词、个人英文词、个人 n-gram、个人敲错表（user.tsv / user-words.tsv / user-english.tsv / user-ngram.tsv / user-typos.tsv）、输入日志（input-log.jsonl）、输入统计（usage-hourly.tsv）、词汇记录（user-vocab.tsv）
 │   ├── qingjian-predict/       # 云联想：Predictor 的网络实现（OpenAI 兼容接口）
 │   ├── qingjian-lm/            # 整句转换的 bigram 语言模型：LanguageModel 的实现
 │   ├── qingjian-neural/        # 字级 Transformer 的本地推理（candle）：SentenceScorer 的实现，给整句前几条路径重打分
@@ -120,9 +120,9 @@ qingjian-core
 
 输入法进程随时会被 launchd 杀掉或自己崩掉，用户攒的学习数据和正在打的字都不能因此没了：
 
-- **原子写**（`qingjian_core::storage::write_atomic`）：学习 crate 的六张 TSV、输入统计 `usage.tsv`、词汇记录 `user-vocab.tsv`、`config.toml`、`.env` 都先写同目录的临时文件，
-  flush + fsync 后改名覆盖；任何时刻磁盘上要么是旧文件要么是新文件。输入日志 `input-log.jsonl` 是追加写不走这条路，
-  崩溃最多留半行，回放工具按行跳过坏行并计数。
+- **原子写**（`qingjian_core::storage::write_atomic`）：学习 crate 的六张 TSV、词汇记录 `user-vocab.tsv`、`config.toml`、`.env` 都先写同目录的临时文件，
+  flush + fsync 后改名覆盖；任何时刻磁盘上要么是旧文件要么是新文件。输入日志 `input-log.jsonl` 与输入统计 `usage-hourly.tsv`、`api-usage-hourly.tsv` 是追加写
+  （统计每次上屏 / 每个请求当场追加，不等定时落盘），崩溃最多留半行，读的一方按行跳过坏行；统计文件攒多了才整理成一个时段一行，整理走原子写。
 - **损坏容忍**：学习数据各文件按行解析，格式不对的行记一条警告跳过（下次落盘就清掉了），编码坏掉的字节按替换字符读进来；
   只有权限、坏盘这类真正的 io 错误才算读失败，这时壳退回只在内存里学习（不带路径，不会拿空表覆盖用户的文件），输入法照常启动。
 - **panic 隔离**：`define_class!` 生成的 IMK 回调是 ObjC 运行时直接调的，panic 穿出去进程就没了。壳在按键处理、
