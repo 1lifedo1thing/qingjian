@@ -3,6 +3,7 @@
 use super::diagnostics::{copy_to_pasteboard, open_with_system};
 use super::*;
 use crate::preferences::DEFAULT_FONT_LABEL;
+use qingjian_core::TraditionalVariant;
 use qingjian_platform::{FontSize, ShiftLetter};
 
 impl Host {
@@ -89,6 +90,8 @@ impl Host {
                 }
             }
             MenuAction::OpenDownload => open_with_system(&[qingjian_update::DOWNLOAD_URL]),
+            // 要当前会话的文本客户端，控制器在 menuAction: 里先接走了
+            MenuAction::OpenSymbolPanel => {}
         }
     }
 
@@ -383,9 +386,6 @@ impl Host {
             (Setting::CloudSlots, SettingValue::Index(index)) => {
                 self.settings.set_value("predict", "slots", index as i64);
             }
-            (Setting::Traditional, SettingValue::Bool(on)) => {
-                self.settings.set_bool("general", "traditional", on);
-            }
             (Setting::EnglishCandidates, SettingValue::Bool(on)) => {
                 self.settings.set_bool("general", "english_candidates", on);
             }
@@ -395,8 +395,17 @@ impl Host {
             (Setting::EnglishInChinese, SettingValue::Bool(on)) => {
                 self.settings.set_bool("general", "english_in_chinese", on);
             }
-            (Setting::Emoji, SettingValue::Bool(on)) => {
-                self.settings.set_bool("general", "emoji", on);
+            (Setting::Emoji, SettingValue::Index(index)) => {
+                self.settings.set_value("general", "emoji", index as i64);
+            }
+            (Setting::Kaomoji, SettingValue::Index(index)) => {
+                self.settings.set_value("general", "kaomoji", index as i64);
+            }
+            (Setting::Symbols, SettingValue::Index(index)) => {
+                self.settings.set_value("general", "symbols", index as i64);
+            }
+            (Setting::AutoSpace, SettingValue::Bool(on)) => {
+                self.settings.set_bool("general", "auto_space", on);
             }
             (Setting::ShiftLetter, SettingValue::Bool(on)) => {
                 let mode = if on {
@@ -433,6 +442,15 @@ impl Host {
             (Setting::Wubi, SettingValue::Bool(on)) => {
                 self.settings
                     .set_value("general", "wubi", if on { "wubi86" } else { "" });
+            }
+            // 弹出菜单按 TraditionalVariant::ALL 的顺序，第 0 项是简体
+            (Setting::Traditional, SettingValue::Index(index)) => {
+                let key = TraditionalVariant::ALL
+                    .get(index)
+                    .unwrap_or(&TraditionalVariant::Off)
+                    .key();
+                self.settings
+                    .set_value("general", "traditional_variant", key);
             }
             // 文本框失焦也会发 action：值没变就不写，免得每次切窗口都重写一遍配置
             (Setting::BaseUrl, SettingValue::Text(text)) => {

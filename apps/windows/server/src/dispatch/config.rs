@@ -1,7 +1,8 @@
+use qingjian_core::TraditionalVariant;
 use qingjian_platform::protocol::KeyModifiers;
 use qingjian_platform::{
-    Appearance, AppsConfig, CandidateRenderer, Config, FontSize, KeyCombo, LayoutMode, PreeditMode,
-    Scheme, SwitchKeys,
+    Appearance, AppsConfig, CandidateRenderer, Config, FontSize, HighlightKeys, KeyCombo,
+    LayoutMode, PageKeys, PreeditMode, Scheme, SwitchKeys,
 };
 
 use super::RenderSettings;
@@ -14,6 +15,12 @@ pub struct RouterConfig {
 
     /// 云端候选在第一页预留的格数（`[predict] slots`）。
     pub cloud_slots: usize,
+
+    /// 是否请求云端候选词和整句补全（`[predict] enabled`）。
+    pub cloud_enabled: bool,
+
+    /// 本地整句候选是否异步请求译文（`[predict] sentence_translation`）。
+    pub sentence_translation: bool,
 
     /// 中文模式下 Shift+字母收进组句缓冲区（`[general] shift_letter = "compose"`）。
     /// 关着（缺省）时壳把大写字母交给应用，与以前一致。
@@ -49,6 +56,9 @@ pub struct RouterConfig {
     /// 翻页键对（`[general] page_keys`，上一页 / 下一页）。
     pub page_keys: (char, char),
 
+    /// 同时启用的额外翻页键。
+    pub extra_page_keys: PageKeys,
+
     /// 英文模式给不给英文候选（`[general] english_candidates`）。
     pub english_candidates: bool,
 
@@ -56,8 +66,20 @@ pub struct RouterConfig {
     /// （切换键与语言栏按钮由 DLL 按同一项拦住，见 `com::service::mode`）。
     pub english_mode: bool,
 
+    /// 首次使用时的中英模式。
+    pub default_english: bool,
+
+    /// 按应用 exe 名记住模式，缺省仍为全局共享。
+    pub remember_mode_per_app: bool,
+
     /// 中英切换键（`[shortcut] switch_mode`）：由 Server 经协议下发给 DLL，由它认键。
     pub switch_mode: SwitchKeys,
+
+    /// 候选高亮由哪对方向键移动（`[shortcut] highlight_keys`）。
+    pub highlight_keys: HighlightKeys,
+
+    /// 标点切换组合键；空为禁用。
+    pub toggle_punctuation: Option<KeyCombo>,
 
     /// 中文模式下不在组句时的标点转全角（`[general] full_width_punctuation`）；状态条可切。
     pub full_width: bool,
@@ -96,7 +118,7 @@ pub struct RouterConfig {
     /// 形码侧开没开（`[general] wubi`）。与拼音同时开着就是混输。
     pub wubi: bool,
 
-    /// 繁体输出（`[general] traditional`），给候选窗口主题显示简 / 繁。
+    /// 繁体输出（`[general] traditional_variant`），给候选窗口主题显示简 / 繁。
     pub traditional: bool,
 
     /// 辅码触发键（`[general] aux_code_key`，缺省 `;`）；非法值退回缺省。
@@ -130,6 +152,8 @@ impl From<&Config> for RouterConfig {
         Self {
             page_size: config.general.page_size(),
             cloud_slots: config.predict.slots,
+            cloud_enabled: config.predict.enabled,
+            sentence_translation: config.predict.sentence_translation,
             shift_letter_compose: config.general.shift_letter.compose(),
             layout: config.general.layout,
             appearance: config.general.appearance(),
@@ -144,9 +168,14 @@ impl From<&Config> for RouterConfig {
             themes_stamp: 0,
             preedit: config.general.preedit,
             page_keys: config.general.page_keys(),
+            extra_page_keys: config.shortcut.extra_page_keys,
             english_candidates: config.general.english_candidates,
             english_mode: config.general.english_mode,
+            default_english: config.general.default_english,
+            remember_mode_per_app: config.general.remember_mode_per_app,
             switch_mode: config.shortcut.switch_mode,
+            highlight_keys: config.shortcut.highlight_keys,
+            toggle_punctuation: config.shortcut.toggle_punctuation,
             full_width: config.general.full_width_punctuation,
             english_full_width: config.general.english_full_width_punctuation,
             punct_commits: config.general.punct_commits,
@@ -162,7 +191,7 @@ impl From<&Config> for RouterConfig {
             status_pos: config.status_bar.x.zip(config.status_bar.y),
             scheme: config.general.scheme(),
             wubi: config.general.wubi(),
-            traditional: config.general.traditional,
+            traditional: config.general.traditional() != TraditionalVariant::Off,
             aux_code_key: config.general.aux_code_key(),
             aux_code_show: config.general.aux_code_show,
         }

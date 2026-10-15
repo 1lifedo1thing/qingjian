@@ -31,7 +31,8 @@ const ID_PUNCTUATION: u32 = 3;
 const ID_STATUS_BAR: u32 = 4;
 const ID_SETTINGS: u32 = 5;
 const ID_DOWNLOAD: u32 = 6;
-const ID_LEGACY_SETTINGS: u32 = 7;
+const ID_SYMBOL_PANEL: u32 = 7;
+const ID_LEGACY_SETTINGS: u32 = 8;
 
 /// 在 `point`（屏幕坐标）弹出菜单，阻塞到用户点了某项或点别处关掉。
 pub(crate) fn track(owner: HWND, point: POINT, state: &MenuState) -> Option<MenuChoice> {
@@ -48,6 +49,7 @@ pub(crate) fn track(owner: HWND, point: POINT, state: &MenuState) -> Option<Menu
         Some((ID_PUNCTUATION, "全角标点", checked(state.full_width))),
         Some((ID_STATUS_BAR, "悬浮状态条", checked(state.status_bar))),
         None,
+        Some((ID_SYMBOL_PANEL, "符号面板…", MENU_ITEM_FLAGS(0))),
     ];
     if state.update_available {
         items.push(Some((
@@ -79,6 +81,7 @@ pub(crate) fn track(owner: HWND, point: POINT, state: &MenuState) -> Option<Menu
         ID_SETTINGS => Some(MenuChoice::Server(IndicatorCommand::OpenSettings)),
         ID_LEGACY_SETTINGS => Some(MenuChoice::Server(IndicatorCommand::OpenLegacySettings)),
         ID_DOWNLOAD => Some(MenuChoice::Server(IndicatorCommand::OpenDownload)),
+        ID_SYMBOL_PANEL => Some(MenuChoice::Server(IndicatorCommand::OpenSymbolPanel)),
         _ => None,
     }
 }

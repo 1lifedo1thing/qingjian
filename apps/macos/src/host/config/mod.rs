@@ -17,15 +17,21 @@ impl Host {
     pub fn apply_config(&mut self, force: bool) {
         let config = self.settings.config().clone();
         self.engine.set_fuzzy(config.fuzzy);
-        self.engine.set_traditional_mode(config.general.traditional);
+        self.engine.set_traditional(config.general.traditional());
         self.engine
             .set_full_width_punctuation(config.general.full_width_punctuation);
         self.apply_custom_phrases(&config);
         self.engine.set_mode_keys(config.shortcut.mode);
         self.engine.set_chinese_first(config.general.chinese_first);
-        self.engine.set_emoji_candidates(config.general.emoji);
+        self.engine
+            .set_emoji_limit(usize::from(config.general.emoji.get()));
+        self.engine
+            .set_kaomoji_limit(usize::from(config.general.kaomoji.get()));
+        self.engine
+            .set_symbol_limit(usize::from(config.general.symbols.get()));
         self.engine
             .set_english_in_chinese(config.general.english_in_chinese);
+        self.engine.set_auto_space(config.general.auto_space);
         self.engine
             .set_shift_letter_compose(config.general.shift_letter.compose());
         self.apply_scheme(config.general.scheme(), config.general.wubi());

@@ -82,7 +82,7 @@ qingjian-core
 │               #   SentenceScorer trait（qingjian-neural 实现）：convert_paths 出前 K 条路径，Engine（engine/rescoring）按 路径分 + λ·(神经分 − 静态分) 重排，异步时后台线程打分、壳停顿后取
 ├── emoji           # emoji 候选：EmojiTable（词 → emoji，Unicode CLDR 中文 annotations）
 ├── fuzzy           # 模糊音：FuzzyRules（配置 [fuzzy]）把每个音节扩展成多种写法，Expanded 借出给词库多写法查询
-├── shuangpin       # 双拼：Scheme 七套方案的键位表，decode 把敲的键解成全拼（音节间带 '），Decoded 把上屏消耗换算回键数；切分之后全部复用全拼
+├── shuangpin       # 双拼：Scheme 八套方案的键位表，decode 把敲的键解成全拼（音节间带 '），Decoded 把上屏消耗换算回键数；切分之后全部复用全拼
 │                   # engine::ModeKeys（配置 [shortcut]）：表达式 / 问字前缀键，只能是 v / u / i；问字键后跟十六进制出码点字符
 ├── engine          # 对外门面：Engine，以及 Translator / Learner trait 与空实现
 └── storage         # 小文件落盘原语：write_atomic（临时文件 + fsync + 改名）、read_text_lossy；学习 crate 与配置都用它
@@ -383,6 +383,8 @@ CC-CEDICT 表（`dict-convert cedict`）保留为备用来源，覆盖面广但�
   系统登记、启用、切换的都是模式，顶层 ID 只是父项，所以 `--register` 启用的是 `tsVisibleInputModeOrderedArrayKey` 的第一项；
   模式显示名在 `InfoPlist.strings` 按模式 ID 给，缺了对话框里显示裸 ID。没有模式时标准文本视图（备忘录等）切不过去、
   「添加输入法」列表也不出现（#31）。
+  **Caps Lock 切换**：系统设置里的「用大写锁定键切换 ABC」要出现并认青简为目标，除 `TICapsLockLanguageSwitchCapable = true` 外，
+  顶层与模式级 `…CharacterRepertoireKey` 都不能带 `Latn`——带了系统把输入源归成拉丁类，这个设置项根本不显示（鼠须管 1.0.1 修的同款坑，#211）。
   **图标**：顶层 `tsInputMethodIconFileKey` 与模式里的 Menu / AlternateMenu / Palette 三个图标键都指向同一张 22×16pt 模板 PDF
   （黑色键帽镂空图形，`TISIconIsTemplate` 让系统只取 alpha 按深浅色反色），鼠须管、Fcitx5 同此尺寸与形式，小了整体偏小、
   非模式路径会被非等比压进 16×16。系统自带输入法下拉菜单里的「拼」「あ」是苹果私有素材（KeyboardLayouts.framework），
@@ -392,6 +394,11 @@ CC-CEDICT 表（`dict-convert cedict`）保留为备用来源，覆盖面广但�
   所以 postinstall 切到登录用户来调它。两个坑决定了它的结构：刚换过 bundle 的头几秒系统还在重扫新包，这时启用的记录会被顶掉
   （实测装完 3 秒内都这样），所以启用后隔一会儿要再确认一次；TIS 在进程内缓存输入源状态，本进程怎么重列表、跑 run loop
   回读都是旧值，所以回读与切换放在子进程（`--finish-register`）里做。
+  另外，沙盒应用（微信、备忘录等）各自在 `$DARWIN_USER_CACHE_DIR/<bundle id>/com.apple.IntlDataCache.le*` 存一份输入源表，
+  启动时直接载入、不检查有没有新装的输入法；收到系统「输入源已变更」的广播只作废内存里的表，重新载入的还是磁盘上这份。
+  装之前就开着的沙盒应用因此不认得青简：Control+Space 切过来时系统框架查不到这个 ID、对 NULL 调 `CFRelease` 崩溃（#346），
+  或者切换列表里干脆没有青简。所以 postinstall 注册前先删掉这个用户的输入源缓存（共享的与各应用的），注册时系统重建共享表并广播，
+  开着的应用找不到磁盘缓存，就从输入法目录重建，不用重启或注销（实测；打开 `AppleTISTraceCacheRebuild` 能看到这条链路的日志）。
 - IMK 无法通过 `cargo run` 验证：需要打包成 `.app`、装到 `~/Library/Input Methods/`、
   注销或重启输入法进程才会生效。Core 的验证靠 CLI 测试工具和单元测试，不依赖跑起真实输入法。
 - 已知需要单独处理的场景：Secure Input 字段、沙盒应用、Electron 与 Terminal 各自的 marked text 行为。
@@ -451,7 +458,9 @@ CC-CEDICT 表（`dict-convert cedict`）保留为备用来源，覆盖面广但�
   （Core 按小写匹配、原样上屏时还原大写，见 [`Composition`]），不再走「先上屏再放行」；
   组句外没有全角映射的字符里，`-` `=` 也改由壳自己插入（`dispatch/key/input.rs::apply_punctuation`）：
   放行要等宿主把键交回应用，实测在部分宿主（Edge / QQ 等）里这个键到不了，用户看到的是「按了没反应」；
-  其余（`@` 数字等）继续放行，宿主连不上 Server 时也只吃「可能是在打拼音」的字母（`service/key_sink.rs`），
+  其余（`@` 数字等）继续放行——数字在 `OnTestKeyDown` 里先问 Server，Passthrough 时 **Test 就不吃**
+  （原生投递；若 Test 已吃再 `InsertTextAtSelection`，绿联等只报 `IS_NUMERIC_PASSWORD`、未设
+  `KEYBOARD_DISABLED` 的密码框光标不前进会倒序），宿主连不上 Server 时也只吃「可能是在打拼音」的字母（`service/key_sink.rs`），
   免得断连窗口里标点 / 数字跟着一起没反应；
   `[apps] english_candidates_on` 白名单按应用给（`english_candidates_off` 从中排除）：应用标识在 Windows 上是宿主进程的 exe 文件名（DLL 加载在应用进程里，`GetModuleFileNameW(NULL)`
   取到就随 `OpenSession { app }` 报一次，Server 每会话记下，收键时按当前会话查），缺省名单分平台（`AppsConfig` 的三份常量与配置模板的 `[apps]` 一节按目标平台三选一：Windows 是 exe 文件名、macOS 是 bundle identifier、Linux 是 Fcitx5 认到的应用名，X11 下是 WM_CLASS、Wayland 下是 app_id），

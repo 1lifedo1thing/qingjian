@@ -12,8 +12,10 @@ pub(crate) enum Message {
     Scheme(Option<usize>),
     ShuangpinRawPreedit(bool),
     Wubi(bool),
-    Traditional(bool),
-    Emoji(bool),
+    Traditional(Option<usize>),
+    Emoji(Option<usize>),
+    Kaomoji(Option<usize>),
+    Symbols(Option<usize>),
     EnglishCandidates(bool),
     EnglishInChinese(bool),
     ChineseFirst(bool),
@@ -27,8 +29,12 @@ pub(crate) enum Message {
     EnglishOnlyInApps(bool),
     /// 勾上 / 去掉一个中英切换键。
     SwitchKey(qingjian_platform::SwitchKey, bool),
+    /// Windows 的 Ctrl + Space，直接读写系统快捷键。
+    SystemCtrlSpace(bool),
     /// 内置英文模式总开关。
     EnglishMode(bool),
+    DefaultEnglish(bool),
+    RememberModePerApp(bool),
 
     // 候选窗口页
     Appearance(Option<usize>),
@@ -55,11 +61,16 @@ pub(crate) enum Message {
     CloudBaseUrl(String),
     CloudSlots(Option<f64>),
     CloudSentence(bool),
+    CloudSentenceTranslation(bool),
     TestConnection,
     CloudTestDone(Result<String, String>),
 
     // 快捷键页
     PageKeys(Option<usize>),
+    /// 高亮由 ↑ / ↓ 还是 ← / → 移动。
+    HighlightKeys(Option<usize>),
+    TogglePunctuation(bool),
+    ExtraPageKey(&'static str, bool),
     ModeExpression(Option<usize>),
     ModeQuestion(Option<usize>),
     QuestionMark(bool),
