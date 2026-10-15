@@ -295,8 +295,7 @@ impl Engine {
         };
         let commit = if learned {
             LastCommit {
-                // 文本是学习键，记简体；字符数按真正上屏的那份算——
-                // 台湾那档连用语一起换，字数会变（内存 → 記憶體），退格撤销数的是屏幕上的字
+                // 文本是学习键，记简体；字符数按真正上屏的那份算，退格撤销数的是屏幕上的字
                 text: candidate.text.clone(),
                 chars: text.chars().count(),
                 tail: text.chars().last(),

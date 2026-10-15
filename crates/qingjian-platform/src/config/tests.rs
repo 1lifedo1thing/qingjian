@@ -67,7 +67,7 @@ fn general_and_shortcut_sections_parse() {
     assert_eq!(config.general.symbols, EmojiCount::new(1));
     assert!(config.general.english_in_chinese);
     assert_eq!(
-        config.general.traditional,
+        config.general.traditional(),
         qingjian_core::TraditionalVariant::Off
     );
     assert_eq!(config.general.shuangpin(), None);

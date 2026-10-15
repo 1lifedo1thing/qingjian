@@ -39,7 +39,7 @@ impl Traditional {
     pub fn new(variant: TraditionalVariant) -> Self {
         let config = match variant {
             TraditionalVariant::Off => None,
-            TraditionalVariant::Taiwan => Some(BuiltinConfig::S2twp),
+            TraditionalVariant::Taiwan => Some(BuiltinConfig::S2tw),
             TraditionalVariant::Hongkong => Some(BuiltinConfig::S2hk),
             TraditionalVariant::Standard => Some(BuiltinConfig::S2t),
         };
@@ -191,24 +191,25 @@ mod tests {
         let mut candidates = list(&["软件", "中华"]);
         traditional.apply(&mut candidates);
         assert_eq!(candidates.items[0].text, "软件");
-        assert_eq!(traditional.restore("軟體"), None);
+        assert_eq!(traditional.restore("軟件"), None);
         assert_eq!(traditional.convert("软件"), "软件");
     }
 
-    /// 台湾那档连用语一起换，字数也会跟着变（内存 → 記憶體）。
+    /// 台湾那档只换成台湾字形、不换用语（与 0.2.1 的 `traditional = true` 相同）：软件 → 軟件，里 → 裡。
     #[test]
-    fn taiwan_converts_vocabulary_too() {
+    fn taiwan_uses_taiwan_glyphs_without_changing_vocabulary() {
         let traditional = Traditional::new(TraditionalVariant::Taiwan);
         assert!(traditional.is_on());
-        assert_eq!(traditional.convert("软件"), "軟體");
-        assert_eq!(traditional.convert("内存"), "記憶體");
+        assert_eq!(traditional.convert("软件"), "軟件");
+        assert_eq!(traditional.convert("这里"), "這裡");
     }
 
-    /// 通用那档只换字形，用语照旧。
+    /// 通用那档只换字形，用语照旧；字形与台湾那档不同（裏 / 裡）。
     #[test]
     fn standard_keeps_vocabulary() {
         let traditional = Traditional::new(TraditionalVariant::Standard);
         assert_eq!(traditional.convert("软件"), "軟件");
+        assert_eq!(traditional.convert("这里"), "這裏");
     }
 
     /// 换过的候选能按繁体文本找回简体原文，没换过的返回 `None`。
@@ -218,9 +219,9 @@ mod tests {
         // 你好 两种写法一样，不进还原表；上屏时按原样走，学习照旧
         let mut candidates = list(&["软件", "你好"]);
         traditional.apply(&mut candidates);
-        assert_eq!(candidates.items[0].text, "軟體");
+        assert_eq!(candidates.items[0].text, "軟件");
         assert_eq!(candidates.items[1].text, "你好");
-        assert_eq!(traditional.restore("軟體").as_deref(), Some("软件"));
+        assert_eq!(traditional.restore("軟件").as_deref(), Some("软件"));
         assert_eq!(traditional.restore("你好"), None);
     }
 
@@ -264,10 +265,10 @@ mod tests {
             ],
         };
         traditional.apply(&mut candidates);
-        assert_eq!(candidates.items[0].reading.as_deref(), Some("軟體"));
+        assert_eq!(candidates.items[0].reading.as_deref(), Some("軟件"));
         assert_eq!(
             candidates.items[1].translation.as_ref().unwrap().senses()[0].text,
-            "軟體工程"
+            "軟件工程"
         );
         // 英语那条的语言不是中文：原样留着
         assert_eq!(
@@ -282,20 +283,20 @@ mod tests {
         let traditional = Traditional::new(TraditionalVariant::Taiwan);
         traditional.apply(&mut list(&["软件"]));
         traditional.apply(&mut list(&["内存"]));
-        assert_eq!(traditional.restore("軟體").as_deref(), Some("软件"));
-        assert_eq!(traditional.restore("記憶體").as_deref(), Some("内存"));
+        assert_eq!(traditional.restore("軟件").as_deref(), Some("软件"));
+        assert_eq!(traditional.restore("內存").as_deref(), Some("内存"));
 
         traditional.forget();
-        assert_eq!(traditional.restore("軟體"), None);
-        assert_eq!(traditional.restore("記憶體"), None);
+        assert_eq!(traditional.restore("軟件"), None);
+        assert_eq!(traditional.restore("內存"), None);
     }
 
     /// 不走候选列表的那条路：转了也要记表，还原得回去。
     #[test]
     fn convert_remember_records_the_mapping() {
         let traditional = Traditional::new(TraditionalVariant::Taiwan);
-        assert_eq!(traditional.convert_remember("软件"), "軟體");
-        assert_eq!(traditional.restore("軟體").as_deref(), Some("软件"));
+        assert_eq!(traditional.convert_remember("软件"), "軟件");
+        assert_eq!(traditional.restore("軟件").as_deref(), Some("软件"));
     }
 
     /// 自定义短语是用户写的原文：开着繁体也原样上屏，不进还原表。
@@ -306,6 +307,6 @@ mod tests {
         candidates.items[0].kind = CandidateKind::Custom(1);
         traditional.apply(&mut candidates);
         assert_eq!(candidates.items[0].text, "软件园");
-        assert_eq!(traditional.restore("軟體園"), None);
+        assert_eq!(traditional.restore("軟件園"), None);
     }
 }

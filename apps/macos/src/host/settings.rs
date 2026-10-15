@@ -441,7 +441,8 @@ impl Host {
                     .get(index)
                     .unwrap_or(&TraditionalVariant::Off)
                     .key();
-                self.settings.set_value("general", "traditional", key);
+                self.settings
+                    .set_value("general", "traditional_variant", key);
             }
             // 文本框失焦也会发 action：值没变就不写，免得每次切窗口都重写一遍配置
             (Setting::BaseUrl, SettingValue::Text(text)) => {
