@@ -34,11 +34,14 @@ pub enum Scheme {
 
     /// 首道双拼。
     Shoudao,
+
+    /// 拼音加加双拼。
+    Jiajia,
 }
 
 impl Scheme {
     /// 全部方案，设置界面按这个顺序列出。
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 8] = [
         Self::Xiaohe,
         Self::Ziranma,
         Self::Microsoft,
@@ -46,6 +49,7 @@ impl Scheme {
         Self::Abc,
         Self::Xiaolang,
         Self::Shoudao,
+        Self::Jiajia,
     ];
 
     /// 配置文件里的写法。`const`：设置界面要按方案列表建常量表（见 `qingjian_platform::Scheme`）。
@@ -58,6 +62,7 @@ impl Scheme {
             Self::Abc => "abc",
             Self::Xiaolang => "xiaolang",
             Self::Shoudao => "shoudao",
+            Self::Jiajia => "jiajia",
         }
     }
 
@@ -71,6 +76,7 @@ impl Scheme {
             Self::Abc => "智能ABC",
             Self::Xiaolang => "小浪双拼",
             Self::Shoudao => "首道双拼",
+            Self::Jiajia => "拼音加加",
         }
     }
 
@@ -83,6 +89,7 @@ impl Scheme {
             Self::Abc => &table::ABC,
             Self::Xiaolang => &table::XIAOLANG,
             Self::Shoudao => &table::SHOUDAO,
+            Self::Jiajia => &table::JIAJIA,
         }
     }
 
@@ -426,6 +433,19 @@ mod tests {
             (Scheme::Xiaolang, "urqp", "er'qie"),
             (Scheme::Xiaolang, "nxhk", "nv'hai"),
             (Scheme::Xiaolang, "ahnx", "ang'nv"),
+            (Scheme::Jiajia, "nihd", "ni'hao"),
+            (Scheme::Jiajia, "ihpl", "shuang'pin"),
+            (Scheme::Jiajia, "xxxi", "xue'xi"),
+            (Scheme::Jiajia, "uv", "chui"),
+            (Scheme::Jiajia, "iv", "shui"),
+            (Scheme::Jiajia, "vv", "zhui"),
+            (Scheme::Jiajia, "nvhs", "nv'hai"),
+            (Scheme::Jiajia, "jx", "jue"),
+            (Scheme::Jiajia, "yy", "yong"),
+            (Scheme::Jiajia, "ww", "wei"),
+            (Scheme::Jiajia, "eq", "er"),
+            (Scheme::Jiajia, "er", "en"),
+            (Scheme::Jiajia, "op", "ou"),
         ];
         for (scheme, keys, expected) in cases {
             assert_eq!(scheme.decode(keys).pinyin(), expected, "{scheme}: {keys}");
@@ -455,6 +475,21 @@ mod tests {
         assert_eq!(Scheme::Shoudao.decode("jl").pinyin(), "jue");
         assert_eq!(Scheme::Shoudao.decode("ll").pinyin(), "lai");
         assert_eq!(Scheme::Shoudao.decode("lb").pinyin(), "lve");
+        // 拼音加加翘舌 zh/ch/sh 在 v/u/i（ch、sh 与小鹤相反）
+        assert_eq!(Scheme::Jiajia.decode("uu").pinyin(), "chu");
+        assert_eq!(Scheme::Jiajia.decode("ii").pinyin(), "shi");
+        assert_eq!(Scheme::Jiajia.decode("vi").pinyin(), "zhi");
+        // 拼音加加零声母主写法双写，同时兼容 o 前缀；en 双写是 er、er 在 eq
+        assert_eq!(Scheme::Jiajia.decode("aa").pinyin(), "a");
+        assert_eq!(Scheme::Jiajia.decode("oa").pinyin(), "a");
+        assert_eq!(Scheme::Jiajia.decode("ee").pinyin(), "e");
+        assert_eq!(Scheme::Jiajia.decode("oe").pinyin(), "e");
+        assert_eq!(Scheme::Jiajia.decode("os").pinyin(), "ai");
+        assert_eq!(Scheme::Jiajia.decode("oo").pinyin(), "o");
+        // 拼音加加 ü 在 v、üe 在 x（jue/nüe 同键，归一到词库写法）
+        assert_eq!(Scheme::Jiajia.decode("nx").pinyin(), "nve");
+        assert_eq!(Scheme::Jiajia.decode("lx").pinyin(), "lve");
+        assert_eq!(Scheme::Jiajia.decode("yx").pinyin(), "yue");
     }
 
     #[test]
@@ -474,6 +509,11 @@ mod tests {
         assert_eq!(Scheme::Abc.decode("o").pinyin(), "o");
         assert_eq!(Scheme::Shoudao.decode("e").pinyin(), "sh");
         assert_eq!(Scheme::Shoudao.decode("u").pinyin(), "e");
+        // 拼音加加落单翘舌键：u 为 ch、i 为 sh、v 为 zh；元音键是元音前缀
+        assert_eq!(Scheme::Jiajia.decode("u").pinyin(), "ch");
+        assert_eq!(Scheme::Jiajia.decode("i").pinyin(), "sh");
+        assert_eq!(Scheme::Jiajia.decode("v").pinyin(), "zh");
+        assert_eq!(Scheme::Jiajia.decode("a").pinyin(), "a");
         // `;` 落单不是任何东西
         assert_eq!(Scheme::Microsoft.decode(";").pinyin(), "");
         assert_eq!(Scheme::Microsoft.decode(";").tail(), ";");
