@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use bamboo_slip::FontLibrary;
 use qingjian_render::{Frame, Layout, Pixmap, Renderer, Theme, sample};
-use render_engine::FontLibrary;
 
 /// 一张预览的参数：主题 id、深色、排布、显示几个候选、倍数与字号（位模式）。
 type PreviewKey = (String, bool, bool, usize, u32, [u32; 2]);

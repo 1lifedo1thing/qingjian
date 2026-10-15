@@ -1,6 +1,6 @@
 //! 搜索索引里的一条。
 
-use render_engine::Key;
+use bamboo_slip::Key;
 
 use crate::page_id::PageId;
 

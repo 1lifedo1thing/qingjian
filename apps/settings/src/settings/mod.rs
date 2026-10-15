@@ -14,9 +14,9 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use bamboo_slip::{FamilyId, SvgImage, TextEdit, Waker};
 use qingjian_platform::{Appearance, Config, ConfigError};
 use qingjian_render::{TextSizes, Theme, ThemeLibrary};
-use render_engine::{FamilyId, SvgImage, TextEdit, Waker};
 
 use crate::jobs::cloud_test::CloudTest;
 use crate::jobs::import::ImportJob;

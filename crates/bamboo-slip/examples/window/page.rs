@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
-use render_engine::taffy::{
+use bamboo_slip::taffy::{
     Dimension, FlexDirection, JustifyContent, LengthPercentage, LengthPercentageAuto, NodeId,
     Position, Rect, Size, Style,
 };
-use render_engine::{
+use bamboo_slip::{
     Button, Checkbox, Interact, KeyCode, NavItem, RenderError, ScrollArea, SearchField, Segmented,
     Select, SettingRow, Stepper, Switch, TITLEBAR, Ui, Visual, WidgetTheme, group, section_title,
 };

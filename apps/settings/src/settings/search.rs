@@ -2,7 +2,7 @@
 
 use std::time::Instant;
 
-use render_engine::Key;
+use bamboo_slip::Key;
 
 use super::Settings;
 use crate::search::SPOTLIGHT;

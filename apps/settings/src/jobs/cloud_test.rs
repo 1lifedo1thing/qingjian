@@ -2,10 +2,10 @@
 
 use std::sync::{Arc, Mutex};
 
+use bamboo_slip::Waker;
 use qingjian_predict::{
     API_USAGE_FILE, ConnectionReport, ConnectionTest, PredictConfig, PredictError,
 };
-use render_engine::Waker;
 
 type Outcome = Result<ConnectionReport, PredictError>;
 

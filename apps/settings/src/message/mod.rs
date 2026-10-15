@@ -8,7 +8,7 @@ pub use field_id::FieldId;
 pub use popup::Popup;
 pub use size_kind::SizeKind;
 
-use render_engine::{Edit, KeyPress};
+use bamboo_slip::{Edit, KeyPress};
 
 use crate::library::Kind;
 use crate::page_id::PageId;

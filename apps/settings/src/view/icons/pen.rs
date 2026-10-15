@@ -1,6 +1,6 @@
 //! 16 单位网格上的画笔：坐标换到画布像素，画好的路径分描边与填充两堆。
 
-use render_engine::tiny_skia::{Path, PathBuilder};
+use bamboo_slip::tiny_skia::{Path, PathBuilder};
 
 /// 16 单位网格上的画笔：坐标换到画布像素。
 pub(super) struct Pen {

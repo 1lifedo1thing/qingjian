@@ -13,8 +13,8 @@ mod snapshot;
 
 use std::path::PathBuf;
 
-use render_engine::taffy::NodeId;
-use render_engine::{App, RenderError, Ui, WindowOptions, run_window};
+use bamboo_slip::taffy::NodeId;
+use bamboo_slip::{App, RenderError, Ui, WindowOptions, run_window};
 
 use demo::{Demo, Message};
 
@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     run_window(
         Demo::new(false),
-        WindowOptions::new("render-engine", (780.0, 580.0)),
+        WindowOptions::new("bamboo-slip", (780.0, 580.0)),
     )?;
     Ok(())
 }

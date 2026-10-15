@@ -94,4 +94,4 @@
   PR 的「怎么验证的」写明系统版本、应用与操作步骤。编译与 CI 通过不算验证。没验过的修复发出去，报 issue 的人升级后还得再报一次。
   复现不了的（没有那个应用或系统）不提修复：把分析写在 issue 里，或者提只加日志、不改行为的 PR。
   不改行为的改动（日志、注释、文档）与有测试 / 回放兜底的 Core 逻辑不受此限。
-- `crates/qingjian-render` 是双许可（GPL-3.0-or-later 或商业许可，见该目录的 `LICENSE.md`）。**向这个目录提交改动，即表示你同意以 [MIT-0](https://opensource.org/license/mit-0) 许可你的这部分贡献**：版权仍归你，你也可以照常以任何许可在别处使用它；这样维护者才能把它一起放进 GPL 与商业许可。贡献里有别人的代码或素材时，在 PR 里写清来源与许可。仓库其他部分的贡献只按 GPL-3.0-or-later。
+- `crates/qingjian-render` 与 `crates/bamboo-slip` 是双许可（GPL-3.0-or-later 或商业许可，见各自目录的 `LICENSE.md`）。**向这两个目录提交改动，即表示你同意以 [MIT-0](https://opensource.org/license/mit-0) 许可你的这部分贡献**：版权仍归你，你也可以照常以任何许可在别处使用它；这样维护者才能把它一起放进 GPL 与商业许可。贡献里有别人的代码或素材时，在 PR 里写清来源与许可。仓库其他部分的贡献只按 GPL-3.0-or-later。

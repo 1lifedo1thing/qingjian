@@ -1,9 +1,9 @@
 //! 「候选」页：每页几个、译文、输出字形，候选后面的 emoji / 颜文字 / 符号，排序（学习、本地整句模型），英文词。
 
+use bamboo_slip::taffy::NodeId;
+use bamboo_slip::{RenderError, SettingRow, Stepper, Ui, group, section_title};
 use qingjian_core::TraditionalVariant;
 use qingjian_platform::{EmojiCount, MAX_PAGE_SIZE};
-use render_engine::taffy::NodeId;
-use render_engine::{RenderError, SettingRow, Stepper, Ui, group, section_title};
 
 use crate::message::{Message, Popup};
 use crate::view::Page;

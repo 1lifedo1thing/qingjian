@@ -1,8 +1,8 @@
 //! 「高级」页：配置文件与数据目录，日志，输入日志。
 
+use bamboo_slip::taffy::NodeId;
+use bamboo_slip::{Button, RenderError, SettingRow, Switch, Ui, group, section_title};
 use qingjian_platform::LogLevel;
-use render_engine::taffy::NodeId;
-use render_engine::{Button, RenderError, SettingRow, Switch, Ui, group, section_title};
 
 use crate::message::Message;
 use crate::system::action::Action;

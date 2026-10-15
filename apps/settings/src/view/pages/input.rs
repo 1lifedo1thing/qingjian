@@ -1,9 +1,9 @@
 //! 「输入」页：方案（拼音、双拼显示按键、五笔），模糊音，辅码。
 
+use bamboo_slip::taffy::LengthPercentage;
+use bamboo_slip::taffy::{Dimension, FlexDirection, FlexWrap, NodeId, Rect, Size, Style};
+use bamboo_slip::{Checkbox, RenderError, SettingRow, Switch, Ui, Visual, group, section_title};
 use qingjian_platform::Scheme;
-use render_engine::taffy::LengthPercentage;
-use render_engine::taffy::{Dimension, FlexDirection, FlexWrap, NodeId, Rect, Size, Style};
-use render_engine::{Checkbox, RenderError, SettingRow, Switch, Ui, Visual, group, section_title};
 
 use super::shortcuts;
 use crate::library::Kind;

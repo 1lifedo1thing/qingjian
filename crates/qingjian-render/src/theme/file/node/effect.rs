@@ -1,7 +1,7 @@
 //! 节点效果：`"effects": [{ "type": "drop-shadow", "x": 0, "y": 6, "blur": 12, "spread": 0, "color": "#0000005a" }]`，
 //! 另有 `inner-shadow`。阴影的形状取节点自己画出来的 alpha（圆角框、九宫格图片、文字都行），不含子节点。
 
-use render_engine::{Color, Effect, EffectKind};
+use bamboo_slip::{Color, Effect, EffectKind};
 use serde::Deserialize;
 
 use crate::theme::file::ColorSpec;

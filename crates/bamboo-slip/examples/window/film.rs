@@ -4,13 +4,13 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use render_engine::taffy::{FlexDirection, LengthPercentage, Rect, Size, Style};
-use render_engine::tiny_skia::IntRect;
-use render_engine::{
+use bamboo_slip::taffy::{FlexDirection, LengthPercentage, Rect, Size, Style};
+use bamboo_slip::tiny_skia::IntRect;
+use bamboo_slip::{
     BoxPaint, Color, Event, Fill, FontSpec, Key, Painted, Pixmap, Scene, Stage, TextStyle, Visual,
 };
 
-use render_engine::{FontLibrary, Runner};
+use bamboo_slip::{FontLibrary, Runner};
 
 use crate::demo::Demo;
 
@@ -106,8 +106,8 @@ fn strip(stage: &mut Stage, frames: Vec<Pixmap>) -> Result<Pixmap, Box<dyn std::
         let image = scene.node(
             Style {
                 size: Size {
-                    width: render_engine::taffy::Dimension::length(width),
-                    height: render_engine::taffy::Dimension::length(height),
+                    width: bamboo_slip::taffy::Dimension::length(width),
+                    height: bamboo_slip::taffy::Dimension::length(height),
                 },
                 ..Style::default()
             },

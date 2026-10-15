@@ -1,10 +1,10 @@
-//! 接上 render-engine：建界面、处理消息、后台任务完成时叫醒。
+//! 接上 bamboo-slip：建界面、处理消息、后台任务完成时叫醒。
 
 use std::sync::Arc;
 use std::time::Instant;
 
-use render_engine::taffy::NodeId;
-use render_engine::{App, FamilyList, FamilyTable, Key, RenderError, TextPainter, Ui, Waker};
+use bamboo_slip::taffy::NodeId;
+use bamboo_slip::{App, FamilyList, FamilyTable, Key, RenderError, TextPainter, Ui, Waker};
 
 use super::{SIZES, Settings};
 use crate::library::{self, Library};
@@ -123,7 +123,7 @@ impl App for Settings {
                     .get_mut(&id)
                     .and_then(|field| field.apply(&edit))
                 {
-                    render_engine::set_clipboard(&copied);
+                    bamboo_slip::set_clipboard(&copied);
                 }
             }
             Message::CheckUpdate => {

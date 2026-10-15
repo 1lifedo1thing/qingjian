@@ -2,9 +2,9 @@
 
 mod themes;
 
+use bamboo_slip::taffy::NodeId;
+use bamboo_slip::{Button, Checkbox, RenderError, SettingRow, Stepper, Ui, group, section_title};
 use qingjian_platform::{Appearance, CandidateRenderer, LayoutMode, PreeditMode};
-use render_engine::taffy::NodeId;
-use render_engine::{Button, Checkbox, RenderError, SettingRow, Stepper, Ui, group, section_title};
 
 use crate::message::{Message, Popup, SizeKind};
 use crate::view::Page;

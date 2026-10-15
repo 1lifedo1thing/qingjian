@@ -1,6 +1,6 @@
 //! 侧栏的线性图标：16 单位见方的网格上画，1.5 单位线宽、圆头圆角，按 `size` 缩放。
 
-use render_engine::{Canvas, Color, Icon};
+use bamboo_slip::{Canvas, Color, Icon};
 
 use super::pen::Pen;
 
@@ -155,7 +155,7 @@ impl Icon for Glyph {
             canvas.stroke_outline(path, width, color);
         }
         for path in &pen.fills {
-            canvas.fill_path(path, color, render_engine::tiny_skia::BlendMode::SourceOver);
+            canvas.fill_path(path, color, bamboo_slip::tiny_skia::BlendMode::SourceOver);
         }
     }
 }

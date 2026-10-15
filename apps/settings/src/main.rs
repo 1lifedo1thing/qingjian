@@ -1,4 +1,4 @@
-//! 青简设置程序（新）：三平台共用、画在 render-engine 上，读写输入法同一份配置文件，改动即时生效。
+//! 青简设置程序（新）：三平台共用、画在 bamboo-slip 上，读写输入法同一份配置文件，改动即时生效。
 //!
 //! - `qingjian-settings`：开窗口，读写用户配置（`paths::config_path`）。
 //! - `--config <文件>`：换一份配置文件读写（试用时不碰真配置）。
@@ -21,7 +21,7 @@ mod view;
 
 use std::path::PathBuf;
 
-use render_engine::{WindowOptions, run_window};
+use bamboo_slip::{WindowOptions, run_window};
 
 use settings::Settings;
 use system::paths;

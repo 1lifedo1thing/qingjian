@@ -1,7 +1,7 @@
 //! 各页共用的几种设置行：开关、分段选择、下拉框。
 
-use render_engine::taffy::NodeId;
-use render_engine::{RenderError, Segmented, Select, SettingRow, Switch, Ui};
+use bamboo_slip::taffy::NodeId;
+use bamboo_slip::{RenderError, Segmented, Select, SettingRow, Switch, Ui};
 
 use super::menus::anchor;
 use crate::message::{Message, Popup};

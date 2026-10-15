@@ -1,13 +1,13 @@
 //! 「快捷键」页：翻页与模式（翻页键，Windows 的额外翻页键、高亮移动键、标点切换键，表达式、问字、? 进问字），候选上的组合键（译词上屏、删除、翻译选中文字），
 //! 恢复默认，页底列组句中固定的键。
 
-use qingjian_core::ModeKeys;
-use qingjian_platform::{HighlightKeys, PAGE_KEY_OPTIONS};
-use render_engine::taffy::{FlexDirection, LengthPercentage, NodeId, Rect, Style};
-use render_engine::{
+use bamboo_slip::taffy::{FlexDirection, LengthPercentage, NodeId, Rect, Style};
+use bamboo_slip::{
     Button, Checkbox, KeyRecorder, RenderError, Segmented, SettingRow, Ui, Visual, group,
     paragraph, section_title,
 };
+use qingjian_core::ModeKeys;
+use qingjian_platform::{HighlightKeys, PAGE_KEY_OPTIONS};
 
 use crate::message::Message;
 use crate::shortcut::Shortcut;
@@ -170,7 +170,7 @@ fn windows_keys(
         |value| Message::set("shortcut", "highlight_keys", value.key()),
     )?;
     let punctuation = shortcut.toggle_punctuation.is_some();
-    let switch = render_engine::Switch::new(punctuation).build(
+    let switch = bamboo_slip::Switch::new(punctuation).build(
         ui,
         theme,
         "toggle-punctuation",

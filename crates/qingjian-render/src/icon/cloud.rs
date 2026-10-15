@@ -1,9 +1,9 @@
 //! 云联想的小云朵：两个圆拱加一条圆角底边的并集，只描边不填充，对应 macOS 的 SF Symbol `cloud`（18×13 挤进 13×13 方块）
 //! 与 Windows 的 ☁ 字形。
 
-use render_engine::tiny_skia::{BlendMode, PathBuilder, Pixmap, Rect};
+use bamboo_slip::tiny_skia::{BlendMode, PathBuilder, Pixmap, Rect};
 
-use render_engine::{Canvas, Color, Icon};
+use bamboo_slip::{Canvas, Color, Icon};
 
 /// 描边宽度相对边长的比例。
 const STROKE_RATIO: f32 = 0.08;
@@ -36,7 +36,7 @@ fn draw_cloud(canvas: &mut Canvas, x: f32, y: f32, size: f32, color: Color) {
 }
 
 /// 云朵轮廓：向内收 `inset` 像素的版本用来挖空。坐标按边长归一化。
-fn cloud_shape(size: f32, inset: f32) -> Option<render_engine::tiny_skia::Path> {
+fn cloud_shape(size: f32, inset: f32) -> Option<bamboo_slip::tiny_skia::Path> {
     let s = size;
     let mut path = PathBuilder::new();
     let mut circle = |cx: f32, cy: f32, r: f32| {

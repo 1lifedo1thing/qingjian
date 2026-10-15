@@ -9,7 +9,7 @@ mod layout_style;
 mod leaf;
 mod row;
 
-use render_engine::taffy::NodeId;
+use bamboo_slip::taffy::NodeId;
 
 use crate::frame::Frame;
 use crate::layout::Layout;
@@ -17,9 +17,9 @@ use crate::renderer::StatusCell;
 use crate::theme::Theme;
 use crate::theme::file::node::{BorderSpec, BoxSpec, EffectSpec, NodeKind, NodeSpec};
 use crate::theme::file::{ColorSpec, FontRef};
-use render_engine::RenderError;
-use render_engine::{Effect, Scene, Visual};
-use render_engine::{TextPainter, TextStyle};
+use bamboo_slip::RenderError;
+use bamboo_slip::{Effect, Scene, Visual};
+use bamboo_slip::{TextPainter, TextStyle};
 
 use context::Context;
 
@@ -73,7 +73,7 @@ impl Builder<'_> {
             Some(&root) => root,
             None => self
                 .scene
-                .node(render_engine::taffy::Style::default(), Visual::Group, &[])?,
+                .node(bamboo_slip::taffy::Style::default(), Visual::Group, &[])?,
         };
         Ok(root)
     }
@@ -173,7 +173,7 @@ impl Builder<'_> {
     }
 
     /// 节点颜色：条件写法按当前数据取分支，再按外观取值。
-    fn color(&self, spec: &ColorSpec, ctx: Context) -> render_engine::Color {
+    fn color(&self, spec: &ColorSpec, ctx: Context) -> bamboo_slip::Color {
         let color = match spec {
             ColorSpec::Fixed(color) => color,
             ColorSpec::Switch {
@@ -197,11 +197,11 @@ impl Builder<'_> {
         &self,
         stroke: Option<&BorderSpec>,
         ctx: Context,
-    ) -> Option<(f32, render_engine::Color)> {
+    ) -> Option<(f32, bamboo_slip::Color)> {
         stroke.map(|stroke| (stroke.width * self.scale, self.color(&stroke.color, ctx)))
     }
 
-    fn text_style(&self, font: &FontRef, color: render_engine::Color) -> TextStyle {
+    fn text_style(&self, font: &FontRef, color: bamboo_slip::Color) -> TextStyle {
         let spec = self.theme.font_ref(font);
         TextStyle::new(
             spec.scaled(self.scale),

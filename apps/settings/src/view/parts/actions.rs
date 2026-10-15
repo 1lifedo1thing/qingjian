@@ -1,7 +1,7 @@
 //! 按钮动作的一排按钮，与做完后挂在行下面的那句话。
 
-use render_engine::taffy::{FlexDirection, NodeId, Style};
-use render_engine::{Button, RenderError, SettingRow, Ui, Visual, paragraph};
+use bamboo_slip::taffy::{FlexDirection, NodeId, Style};
+use bamboo_slip::{Button, RenderError, SettingRow, Ui, Visual, paragraph};
 
 use crate::message::Message;
 use crate::system::action::Action;

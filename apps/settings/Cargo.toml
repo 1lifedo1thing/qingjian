@@ -1,6 +1,6 @@
 [package]
 name = "qingjian-settings"
-description = "三平台共用的设置程序：画在 render-engine 上，读写输入法同一份 config.toml"
+description = "三平台共用的设置程序：画在 bamboo-slip 上，读写输入法同一份 config.toml"
 version = "0.2.1-dev"
 edition.workspace = true
 license.workspace = true
@@ -8,7 +8,7 @@ repository.workspace = true
 publish = false
 
 [dependencies]
-render-engine = { workspace = true, features = ["host"] }
+bamboo-slip = { workspace = true, features = ["host"] }
 qingjian-render.workspace = true
 qingjian-platform.workspace = true
 # 模式键的候选字母、辅码触发键的校验

@@ -7,11 +7,11 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use qingjian_platform::Config;
-use render_engine::{
+use bamboo_slip::{
     App, Edit, Event, FontLibrary, Interaction, KeyCode, KeyPress, Modifiers, TextInput,
     TextPainter, Ui,
 };
+use qingjian_platform::Config;
 
 use crate::message::{FieldId, Message, Popup};
 use crate::page_id::PageId;
@@ -48,7 +48,7 @@ impl Harness {
     }
 
     /// 点一下，返回产出的消息（不处理）。
-    fn click(&mut self, key: render_engine::Key) -> Vec<Message> {
+    fn click(&mut self, key: bamboo_slip::Key) -> Vec<Message> {
         let Some((x, y, width, height)) = self.interaction.rect(key) else {
             return Vec::new();
         };
@@ -142,7 +142,7 @@ impl Harness {
     }
 
     /// 菜单开着时多出来的元素就是菜单项：每项重新打开菜单再点。
-    fn sweep_menu(&mut self, popup: Popup, page_keys: &[render_engine::Key]) {
+    fn sweep_menu(&mut self, popup: Popup, page_keys: &[bamboo_slip::Key]) {
         self.frame();
         let items: Vec<_> = self
             .interaction

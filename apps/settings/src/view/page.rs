@@ -1,7 +1,7 @@
 //! 建一帧要用的东西：设置状态、控件主题、配色与缩放。
 
-use render_engine::WidgetTheme;
-use render_engine::taffy::{LengthPercentage, Size};
+use bamboo_slip::WidgetTheme;
+use bamboo_slip::taffy::{LengthPercentage, Size};
 
 use super::palette::Palette;
 use crate::settings::Settings;

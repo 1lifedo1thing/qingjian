@@ -3,17 +3,15 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use render_engine::taffy::{
-    Dimension, FlexDirection, FlexWrap, LengthPercentage, Rect, Size, Style,
-};
-use render_engine::{
+use bamboo_slip::taffy::{Dimension, FlexDirection, FlexWrap, LengthPercentage, Rect, Size, Style};
+use bamboo_slip::{
     BoxPaint, Color, Event, Fill, FontSpec, Key, KeyCode, KeyPress, Modifiers, Pixmap, Scene,
     Stage, TextStyle, Visual,
 };
 
 use std::time::Instant;
 
-use render_engine::{FontLibrary, Runner};
+use bamboo_slip::{FontLibrary, Runner};
 
 use crate::demo::Demo;
 
@@ -97,7 +95,7 @@ pub fn run(directory: &Path) -> Result<(), Box<dyn std::error::Error>> {
                 let pixmap = painted
                     .pixmap
                     .clone_rect(
-                        render_engine::tiny_skia::IntRect::from_xywh(
+                        bamboo_slip::tiny_skia::IntRect::from_xywh(
                             painted.content_x as i32,
                             painted.content_y as i32,
                             painted.content_width,

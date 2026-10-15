@@ -1,4 +1,4 @@
-//! 主题里能写的矢量小图标（`"icon": "cloud"`），各自实现引擎的 [`render_engine::Icon`]。
+//! 主题里能写的矢量小图标（`"icon": "cloud"`），各自实现引擎的 [`bamboo_slip::Icon`]。
 
 mod cloud;
 mod gear;
@@ -20,13 +20,13 @@ pub(crate) enum Icon {
     Gear,
 }
 
-static CLOUD: LazyLock<Arc<dyn render_engine::Icon>> = LazyLock::new(|| Arc::new(Cloud));
+static CLOUD: LazyLock<Arc<dyn bamboo_slip::Icon>> = LazyLock::new(|| Arc::new(Cloud));
 
-static GEAR: LazyLock<Arc<dyn render_engine::Icon>> = LazyLock::new(|| Arc::new(Gear));
+static GEAR: LazyLock<Arc<dyn bamboo_slip::Icon>> = LazyLock::new(|| Arc::new(Gear));
 
 impl Icon {
     /// 交给场景树画的那一个。
-    pub(crate) fn painter(self) -> Arc<dyn render_engine::Icon> {
+    pub(crate) fn painter(self) -> Arc<dyn bamboo_slip::Icon> {
         match self {
             Self::Cloud => Arc::clone(&CLOUD),
             Self::Gear => Arc::clone(&GEAR),

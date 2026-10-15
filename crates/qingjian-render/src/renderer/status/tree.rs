@@ -7,8 +7,8 @@ use crate::renderer::build::Builder;
 use crate::renderer::{Rendered, Renderer};
 use crate::theme::Theme;
 use crate::theme::file::node::NodeSpec;
-use render_engine::RenderError;
-use render_engine::Scene;
+use bamboo_slip::RenderError;
+use bamboo_slip::Scene;
 
 impl Renderer {
     pub(super) fn render_status_tree(

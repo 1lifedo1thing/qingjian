@@ -7,7 +7,7 @@ pub use entry::Entry;
 
 use std::time::{Duration, Instant};
 
-use render_engine::{Key, TextEdit};
+use bamboo_slip::{Key, TextEdit};
 
 /// 醒目标出留多久再淡出。
 pub const SPOTLIGHT: Duration = Duration::from_millis(1200);

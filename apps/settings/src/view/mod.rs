@@ -11,8 +11,8 @@ mod sidebar;
 
 pub use page::Page;
 
-use render_engine::taffy::{Dimension, FlexDirection, LengthPercentage, NodeId, Rect, Size, Style};
-use render_engine::{
+use bamboo_slip::taffy::{Dimension, FlexDirection, LengthPercentage, NodeId, Rect, Size, Style};
+use bamboo_slip::{
     Interact, Interaction, KeyCode, RenderError, ScrollArea, TITLEBAR, Ui, Visual, WidgetTheme,
 };
 

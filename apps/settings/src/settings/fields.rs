@@ -1,6 +1,6 @@
 //! 输入框：编辑状态与配置之间的换入、存回。
 
-use render_engine::TextEdit;
+use bamboo_slip::TextEdit;
 
 use super::Settings;
 use crate::message::FieldId;

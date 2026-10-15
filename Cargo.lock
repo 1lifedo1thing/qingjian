@@ -227,6 +227,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
+name = "bamboo-slip"
+version = "0.1.1"
+dependencies = [
+ "arboard",
+ "cosmic-text",
+ "resvg",
+ "serde",
+ "serde_json",
+ "softbuffer",
+ "taffy",
+ "thiserror 2.0.21",
+ "tiny-skia 0.12.0",
+ "tracing",
+ "ttf-parser",
+ "windows",
+ "winit",
+ "zeno",
+]
+
+[[package]]
 name = "base64"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3559,9 +3579,9 @@ dependencies = [
 name = "qingjian-render"
 version = "0.1.1"
 dependencies = [
+ "bamboo-slip",
  "clap",
  "cosmic-text",
- "render-engine",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -3574,6 +3594,7 @@ dependencies = [
 name = "qingjian-settings"
 version = "0.2.1-dev"
 dependencies = [
+ "bamboo-slip",
  "cosmic-text",
  "dotenvy",
  "jiff",
@@ -3585,7 +3606,6 @@ dependencies = [
  "qingjian-render",
  "qingjian-translate",
  "qingjian-update",
- "render-engine",
  "rfd",
  "toml",
  "toml_edit",
@@ -3914,25 +3934,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "663ba70707f96e871406fe10d68128412e619b06d1d47cb91c3a4c6501176240"
 dependencies = [
  "bytecheck",
-]
-
-[[package]]
-name = "render-engine"
-version = "0.1.0-dev"
-dependencies = [
- "arboard",
- "cosmic-text",
- "resvg",
- "serde",
- "softbuffer",
- "taffy",
- "thiserror 2.0.21",
- "tiny-skia 0.12.0",
- "tracing",
- "ttf-parser",
- "windows",
- "winit",
- "zeno",
 ]
 
 [[package]]

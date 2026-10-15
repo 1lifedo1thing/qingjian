@@ -4,9 +4,9 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+use bamboo_slip::Waker;
 use qingjian_platform::UpdateConfig;
 use qingjian_update::{Available, Checker, UpdateError, UpdateState};
-use render_engine::Waker;
 
 /// 本程序与输入法同一个版本号，按它判断有没有新版。
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

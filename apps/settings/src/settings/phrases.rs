@@ -1,8 +1,8 @@
 //! 自定义短语的编辑卡片：打开、关闭、存回配置。
 
+use bamboo_slip::TextEdit;
 use qingjian_core::CustomPhrase;
 use qingjian_platform::Config;
-use render_engine::TextEdit;
 
 use super::Settings;
 use crate::message::FieldId;

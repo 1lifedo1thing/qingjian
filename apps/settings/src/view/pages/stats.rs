@@ -1,15 +1,15 @@
 //! 「统计」页：今天、最近 7 天、累计三张数字卡，累计跟一本书比；词汇（学习语言的译词见过、看熟、上屏过，有等级表时按级列）；
 //! 云服务的请求次数与 Token 用量（Windows）。
 
-use qingjian_core::{Usage, VocabularySummary};
-use qingjian_predict::ApiUsageStats;
-use render_engine::taffy::{
+use bamboo_slip::taffy::{
     AlignItems, Dimension, FlexDirection, JustifyContent, LengthPercentage, NodeId, Rect, Size,
     Style,
 };
-use render_engine::{
+use bamboo_slip::{
     BoxPaint, Fill, RenderError, SettingRow, Ui, Visual, group, paragraph, section_title,
 };
+use qingjian_core::{Usage, VocabularySummary};
+use qingjian_predict::ApiUsageStats;
 
 use crate::message::Message;
 use crate::stats::{group_digits, hanzi_text, scale_line};
@@ -281,7 +281,7 @@ fn cell(
     page: &Page,
     value: &str,
     weight: u16,
-    color: render_engine::Color,
+    color: bamboo_slip::Color,
     number: bool,
 ) -> Result<NodeId, RenderError> {
     let label = text(ui, page, value, page.theme.small + 1.0, weight, color)?;
@@ -332,7 +332,7 @@ fn text(
     text: &str,
     points: f32,
     weight: u16,
-    color: render_engine::Color,
+    color: bamboo_slip::Color,
 ) -> Result<NodeId, RenderError> {
     ui.scene().node(
         Style::default(),

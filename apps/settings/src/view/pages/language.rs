@@ -1,8 +1,8 @@
 //! 「中英文」页：英文模式（开关、切换键、默认英文与按应用记住、英文候选、Shift + 字母），标点与中西文空格，悬浮状态条。
 
+use bamboo_slip::taffy::{FlexDirection, NodeId, Style};
+use bamboo_slip::{Checkbox, RenderError, SettingRow, Ui, Visual, group, section_title};
 use qingjian_platform::{DEFAULT_ENGLISH_CANDIDATES_ON, ShiftLetter, SwitchKey};
-use render_engine::taffy::{FlexDirection, NodeId, Style};
-use render_engine::{Checkbox, RenderError, SettingRow, Ui, Visual, group, section_title};
 
 use crate::message::Message;
 use crate::view::Page;
@@ -66,7 +66,7 @@ pub fn language(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Render
             "english-only-in-apps",
             Message::SetList("apps", "english_candidates_on", apps),
         )?;
-    let switch = render_engine::Switch::new(general.english_candidates).build(
+    let switch = bamboo_slip::Switch::new(general.english_candidates).build(
         ui,
         theme,
         "english-candidates",
@@ -199,7 +199,7 @@ fn switch_keys(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError>
     let column = ui.scene().node(
         Style {
             flex_direction: FlexDirection::Column,
-            align_items: Some(render_engine::taffy::AlignItems::FLEX_START),
+            align_items: Some(bamboo_slip::taffy::AlignItems::FLEX_START),
             gap: page.gap(8.0),
             ..Style::default()
         },

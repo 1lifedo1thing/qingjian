@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
-use render_engine::taffy::{
+use bamboo_slip::taffy::{
     Dimension, FlexDirection, JustifyContent, LengthPercentage, LengthPercentageAuto, NodeId,
     Position, Rect, Size, Style,
 };
-use render_engine::{
+use bamboo_slip::{
     BoxPaint, Fill, FontSpec, FontWeight, NavItem, RenderError, SearchField, TITLEBAR, TextStyle,
     Ui, Visual, paragraph,
 };
@@ -160,7 +160,7 @@ fn brand(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
     ui.scene().node(
         Style {
             flex_direction: FlexDirection::Row,
-            align_items: Some(render_engine::taffy::AlignItems::CENTER),
+            align_items: Some(bamboo_slip::taffy::AlignItems::CENTER),
             gap: page.gap(8.0),
             padding: Rect {
                 left: LengthPercentage::length(page.px(6.0)),

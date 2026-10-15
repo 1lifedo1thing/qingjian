@@ -1,7 +1,7 @@
 //! 录快捷键：哪几项能录、按下的键能不能用（缺修饰键、跟别的撞了），以及各平台给人看的写法。
 
+use bamboo_slip::{KeyCode, KeyPress};
 use qingjian_platform::{Config, KeyCombo, Modifiers};
-use render_engine::{KeyCode, KeyPress};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Shortcut {
@@ -180,7 +180,7 @@ fn combo_label(combo: KeyCombo) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use render_engine::Modifiers as Held;
+    use bamboo_slip::Modifiers as Held;
 
     fn press(key: &str, held: Held) -> KeyPress {
         KeyPress::new(KeyCode::Character(key.to_owned()), held)

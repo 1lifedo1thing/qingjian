@@ -1,6 +1,6 @@
 //! 渲染结果：位图加内容区（阴影边之外的那块）的位置。
 
-use render_engine::{Painted, Pixmap};
+use bamboo_slip::{Painted, Pixmap};
 
 use super::{HitRegion, HitTarget};
 

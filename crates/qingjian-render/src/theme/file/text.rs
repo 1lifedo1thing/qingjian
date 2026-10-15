@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use render_engine::{FamilyList, FontWeight};
+use bamboo_slip::{FamilyList, FontWeight};
 use serde::Deserialize;
 
 use super::FontStyle;

@@ -18,8 +18,8 @@ mod validate;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
 
-use render_engine::tiny_skia::Pixmap;
-use render_engine::{Color, FamilyTable, FontSpec, SvgImage};
+use bamboo_slip::tiny_skia::Pixmap;
+use bamboo_slip::{Color, FamilyTable, FontSpec, SvgImage};
 
 pub use error::ThemeError;
 use font::FontFamilies;
@@ -493,7 +493,7 @@ impl Theme {
         text_sizes::scaled(spec, self.sizes.ratio(name, |base| self.theme_size(base)))
     }
 
-    /// 字族表，画笔按 [`render_engine::FamilyId`] 查回退链；两份 `Theme` 共用同一张表时指针相同。
+    /// 字族表，画笔按 [`bamboo_slip::FamilyId`] 查回退链；两份 `Theme` 共用同一张表时指针相同。
     pub(crate) fn families(&self) -> &Arc<FamilyTable> {
         self.families.table()
     }

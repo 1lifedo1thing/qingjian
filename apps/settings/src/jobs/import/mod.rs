@@ -8,8 +8,8 @@ pub use report::Report;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
+use bamboo_slip::Waker;
 use qingjian_dictionary::{DictionaryError, import, import_aux_code_table};
-use render_engine::Waker;
 
 use crate::library::Kind;
 

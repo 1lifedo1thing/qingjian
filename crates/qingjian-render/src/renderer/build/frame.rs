@@ -3,8 +3,8 @@
 //! 表格各列取各行最宽，最后补一列 `1fr` 吃掉剩余宽度，这样 `span: row` 的节点（高亮条）能横跨整个表格宽；
 //! 列间距由各格的外边距给（grid 的 gap 会让补的那一列也多出一个间距）。
 
-use render_engine::taffy::prelude::{FromFr, TaffyAuto, TaffyGridLine, minmax};
-use render_engine::taffy::{
+use bamboo_slip::taffy::prelude::{FromFr, TaffyAuto, TaffyGridLine, minmax};
+use bamboo_slip::taffy::{
     AlignContent, AlignItems, Display, GridPlacement, GridTemplateComponent, JustifyContent, Line,
     MaxTrackSizingFunction, MinTrackSizingFunction, NodeId, Style,
 };
@@ -12,9 +12,9 @@ use render_engine::taffy::{
 use super::layout_style;
 use super::{Builder, Context};
 use crate::theme::file::node::{BoxSpec, FillSpec, NodeKind, NodeSpec, Span, StopSpec};
-use render_engine::Color;
-use render_engine::RenderError;
-use render_engine::{BoxPaint, Fill, Visual};
+use bamboo_slip::Color;
+use bamboo_slip::RenderError;
+use bamboo_slip::{BoxPaint, Fill, Visual};
 
 impl Builder<'_> {
     pub(super) fn frame(

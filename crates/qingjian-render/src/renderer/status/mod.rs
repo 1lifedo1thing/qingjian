@@ -8,7 +8,7 @@ mod tree;
 pub use cell::StatusCell;
 pub use rendered::RenderedStatus;
 
-use render_engine::taffy::{
+use bamboo_slip::taffy::{
     AlignItems, Dimension, Display, JustifyContent, NodeId, Position, Size, Style,
 };
 
@@ -18,9 +18,9 @@ use crate::icon::Icon;
 use crate::theme::file::ColorSpec;
 use crate::theme::file::node::EffectSpec;
 use crate::theme::{TextSizes, Theme};
-use render_engine::RenderError;
-use render_engine::TextStyle;
-use render_engine::{Effect, Scene, Visual};
+use bamboo_slip::RenderError;
+use bamboo_slip::TextStyle;
+use bamboo_slip::{Effect, Scene, Visual};
 
 /// 一次渲染里按倍数换算好的状态条参数。
 struct Metrics<'a> {
@@ -29,7 +29,7 @@ struct Metrics<'a> {
     scale: f32,
 
     /// 文字样式（颜色后配）。
-    font: render_engine::FontSpec,
+    font: bamboo_slip::FontSpec,
 }
 
 impl Metrics<'_> {
@@ -165,11 +165,11 @@ fn status_cell(
         let inset = m.px(spec.padding) / 2.0;
         let style = Style {
             position: Position::Absolute,
-            inset: render_engine::taffy::Rect {
-                left: render_engine::taffy::LengthPercentageAuto::length(0.0),
-                right: render_engine::taffy::LengthPercentageAuto::auto(),
-                top: render_engine::taffy::LengthPercentageAuto::length(inset),
-                bottom: render_engine::taffy::LengthPercentageAuto::length(inset),
+            inset: bamboo_slip::taffy::Rect {
+                left: bamboo_slip::taffy::LengthPercentageAuto::length(0.0),
+                right: bamboo_slip::taffy::LengthPercentageAuto::auto(),
+                top: bamboo_slip::taffy::LengthPercentageAuto::length(inset),
+                bottom: bamboo_slip::taffy::LengthPercentageAuto::length(inset),
             },
             size: Size {
                 width: Dimension::length(m.px(spec.separator_width)),
@@ -225,7 +225,7 @@ mod tests {
     use crate::frame::Mode;
     use crate::renderer::Renderer;
     use crate::theme::Theme;
-    use render_engine::FontLibrary;
+    use bamboo_slip::FontLibrary;
 
     #[test]
     fn cells_have_increasing_edges_ending_at_content_width() {

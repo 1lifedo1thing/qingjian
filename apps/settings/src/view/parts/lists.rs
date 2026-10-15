@@ -1,10 +1,10 @@
 //! 词库、码表的清单：每本一行（勾选开关、条数与许可证、移除），随包领域词库排成两列，末尾一行导入按钮。
 
-use render_engine::taffy::{
+use bamboo_slip::taffy::{
     AlignItems, Dimension, FlexDirection, FlexWrap, JustifyContent, LengthPercentage,
     LengthPercentageAuto, NodeId, Rect, Size, Style,
 };
-use render_engine::{Button, Checkbox, RenderError, SettingRow, Ui, Visual};
+use bamboo_slip::{Button, Checkbox, RenderError, SettingRow, Ui, Visual};
 
 use crate::library::{Entry, Kind};
 use crate::message::Message;

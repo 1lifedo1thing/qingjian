@@ -2,7 +2,7 @@
 
 use serde::Deserialize;
 
-use render_engine::Color;
+use bamboo_slip::Color;
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(try_from = "String")]

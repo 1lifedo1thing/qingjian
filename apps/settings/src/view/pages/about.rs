@@ -2,14 +2,14 @@
 
 use std::sync::Arc;
 
-use qingjian_platform::UpdateChannel;
-use render_engine::taffy::{
+use bamboo_slip::taffy::{
     AlignItems, Dimension, FlexDirection, LengthPercentage, NodeId, Rect, Size, Style,
 };
-use render_engine::{
+use bamboo_slip::{
     BoxPaint, Button, Fill, FontSpec, FontWeight, RenderError, SettingRow, TextStyle, Ui, Visual,
     group, paragraph, section_title,
 };
+use qingjian_platform::UpdateChannel;
 
 use crate::message::Message;
 use crate::system::action::Action;

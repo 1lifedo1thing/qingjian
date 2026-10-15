@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use render_engine::{FamilyList, FamilyTable, FontSpec};
+use bamboo_slip::{FamilyList, FamilyTable, FontSpec};
 
 use crate::theme::file::{FontStyle, TextSettings};
 
@@ -34,7 +34,7 @@ impl FontFamilies {
                     family: spec
                         .family
                         .as_ref()
-                        .map_or(render_engine::FamilyId(0), |list| table.intern(list)),
+                        .map_or(bamboo_slip::FamilyId(0), |list| table.intern(list)),
                 };
                 (name.clone(), font)
             })

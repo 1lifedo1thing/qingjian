@@ -3,10 +3,8 @@
 use std::path::Path;
 use std::time::Instant;
 
-use render_engine::tiny_skia::IntRect;
-use render_engine::{
-    App, Event, FontLibrary, Key, KeyCode, KeyPress, Modifiers, Runner, TextInput,
-};
+use bamboo_slip::tiny_skia::IntRect;
+use bamboo_slip::{App, Event, FontLibrary, Key, KeyCode, KeyPress, Modifiers, Runner, TextInput};
 
 use crate::page_id::PageId;
 use crate::settings::Settings;

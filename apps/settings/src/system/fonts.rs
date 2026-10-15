@@ -11,7 +11,7 @@ pub fn families() -> Vec<String> {
 
 #[cfg(windows)]
 fn scan() -> Vec<String> {
-    render_engine::system_fonts::families()
+    bamboo_slip::system_fonts::families()
 }
 
 #[cfg(not(windows))]

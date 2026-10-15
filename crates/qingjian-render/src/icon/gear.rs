@@ -3,9 +3,9 @@
 
 use std::f32::consts::TAU;
 
-use render_engine::tiny_skia::{BlendMode, PathBuilder, Pixmap};
+use bamboo_slip::tiny_skia::{BlendMode, PathBuilder, Pixmap};
 
-use render_engine::{Canvas, Color, Icon};
+use bamboo_slip::{Canvas, Color, Icon};
 
 /// 齿数。
 const TEETH: usize = 8;
@@ -56,7 +56,7 @@ fn draw_gear(canvas: &mut Canvas, x: f32, y: f32, size: f32, color: Color) {
 }
 
 /// 齿轮外轮廓：齿顶与齿根交替的折线，向内收 `inset` 像素的版本用来挖空。
-fn gear_outline(size: f32, inset: f32) -> Option<render_engine::tiny_skia::Path> {
+fn gear_outline(size: f32, inset: f32) -> Option<bamboo_slip::tiny_skia::Path> {
     let center = size / 2.0;
     let outer = size * 0.48 - inset;
     let inner = size * 0.36 - inset;

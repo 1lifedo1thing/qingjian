@@ -1,6 +1,6 @@
 //! 样例用的竹青配色（浅色、深色）与窗口、侧栏的底色。
 
-use render_engine::{Color, WidgetColors};
+use bamboo_slip::{Color, WidgetColors};
 
 pub struct Palette {
     pub widgets: WidgetColors,

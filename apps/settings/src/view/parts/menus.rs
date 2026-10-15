@@ -1,9 +1,9 @@
 //! 下拉框弹出的菜单：贴在下拉框下面（下面放不下就往上），选中即写配置。
 
+use bamboo_slip::taffy::NodeId;
+use bamboo_slip::{Menu, RenderError, Ui};
 use qingjian_core::TraditionalVariant;
 use qingjian_platform::{EmojiCount, Scheme};
-use render_engine::taffy::NodeId;
-use render_engine::{Menu, RenderError, Ui};
 
 use crate::message::{Message, Popup};
 use crate::view::Page;

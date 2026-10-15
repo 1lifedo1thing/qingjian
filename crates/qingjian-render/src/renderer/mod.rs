@@ -11,8 +11,8 @@ mod status;
 use std::path::PathBuf;
 use std::time::Instant;
 
-use render_engine::taffy::NodeId;
-use render_engine::{
+use bamboo_slip::taffy::NodeId;
+use bamboo_slip::{
     Color, FontLibrary, FontSpec, RenderError, Scene, Stage, TextPainter, TextStyle,
 };
 

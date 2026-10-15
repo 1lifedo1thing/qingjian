@@ -1,13 +1,13 @@
 //! 叶子节点：文字、图标、拼音行、译文。绑定取不到数据时不产出节点。
 
-use render_engine::taffy::{Dimension, NodeId, Style};
+use bamboo_slip::taffy::{Dimension, NodeId, Style};
 
 use super::layout_style;
 use super::{Builder, Context};
 use crate::frame::{Preedit, PreeditStyle, Tone};
 use crate::theme::file::node::{BoxSpec, Direction, NodeKind, NodeSpec, ToneFilter};
-use render_engine::RenderError;
-use render_engine::{Decoration, Visual};
+use bamboo_slip::RenderError;
+use bamboo_slip::{Decoration, Visual};
 
 impl Builder<'_> {
     pub(super) fn leaf(
@@ -171,7 +171,7 @@ impl Builder<'_> {
         }
         let caret_width = caret.width * self.scale;
         let spacer = Style {
-            size: render_engine::taffy::Size {
+            size: bamboo_slip::taffy::Size {
                 width: Dimension::length(caret_width),
                 height: Dimension::length(0.0),
             },
@@ -183,14 +183,14 @@ impl Builder<'_> {
             .measure(&preedit.before_cursor(), &typed_style)
             .width;
         let caret_style = Style {
-            position: render_engine::taffy::Position::Absolute,
-            inset: render_engine::taffy::Rect {
-                left: render_engine::taffy::LengthPercentageAuto::length(caret_x),
-                right: render_engine::taffy::LengthPercentageAuto::auto(),
-                top: render_engine::taffy::LengthPercentageAuto::length(0.0),
-                bottom: render_engine::taffy::LengthPercentageAuto::auto(),
+            position: bamboo_slip::taffy::Position::Absolute,
+            inset: bamboo_slip::taffy::Rect {
+                left: bamboo_slip::taffy::LengthPercentageAuto::length(caret_x),
+                right: bamboo_slip::taffy::LengthPercentageAuto::auto(),
+                top: bamboo_slip::taffy::LengthPercentageAuto::length(0.0),
+                bottom: bamboo_slip::taffy::LengthPercentageAuto::auto(),
             },
-            size: render_engine::taffy::Size {
+            size: bamboo_slip::taffy::Size {
                 width: Dimension::length(caret_width),
                 height: Dimension::length(typed_style.line_height),
             },

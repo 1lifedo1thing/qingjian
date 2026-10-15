@@ -46,12 +46,13 @@ qingjian/
 │   ├── qingjian-neural/        # 字级 Transformer 的本地推理（candle）：SentenceScorer 的实现，给整句前几条路径重打分
 │   ├── qingjian-format/        # .qj 数据容器：mmap 打开、零拷贝视图、写入器、可落盘的哈希索引（dictionary / lm 依赖它）
 │   ├── qingjian-render/        # 自绘渲染器：候选窗一帧 + 主题 → 位图，各平台贴图
+│   ├── bamboo-slip/            # 自绘 UI 引擎：场景树、布局、文字、动画、控件 → 位图；候选窗与设置程序共用
 │   ├── qingjian-update/        # 检查更新：读 releases.json、验 ed25519 签名、按平台与渠道挑新版本
 │   └── qingjian-platform/      # 平台层共用的部分：配置文件、协议类型
 │
 ├── apps/
 │   ├── cli/                    # 测试工具：查询、逐键计时、输入日志回放评测、整句评测
-│   ├── settings/               # 设置程序：三平台共用，画在 render-engine 上，读写同一份配置
+│   ├── settings/               # 设置程序：三平台共用，画在 bamboo-slip 上，读写同一份配置
 │   ├── macos/                  # IMK 输入法壳（app / host / imk / candidates / menubar / preferences（旧版设置））
 │   ├── windows/                # 同一个产品的四个 package：server（IPC 分派 + Engine + 命名管道 + 自绘候选窗）、
 │   │                           #   tsf（TSF 文本服务 DLL：COM 链路 + 连 Server 的管道客户端）、settings（旧版设置，WinUI 3）、installer

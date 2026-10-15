@@ -1,11 +1,11 @@
 //! 「自定义短语」页：每条一行（开关、输入码、位置、内容的开头、编辑），末尾新增；macOS 另有「也用系统的文本替换」。
 //! 新增、编辑在对话框里改，保存时整张表校验。
 
-use render_engine::taffy::{
+use bamboo_slip::taffy::{
     AlignItems, Dimension, FlexDirection, JustifyContent, LengthPercentage, LengthPercentageAuto,
     NodeId, Rect, Size, Style,
 };
-use render_engine::{
+use bamboo_slip::{
     Button, Checkbox, RenderError, SettingRow, Stepper, TextField, Ui, Visual, dialog, group,
     paragraph, section_title,
 };

@@ -1,6 +1,6 @@
 //! 设置程序的竹青配色（浅色、深色）：控件颜色与窗口、侧栏、预览卡的底色。
 
-use render_engine::{Color, WidgetColors};
+use bamboo_slip::{Color, WidgetColors};
 
 pub struct Palette {
     pub widgets: WidgetColors,

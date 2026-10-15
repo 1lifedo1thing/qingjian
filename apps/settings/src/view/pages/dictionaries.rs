@@ -1,7 +1,7 @@
 //! 「词库」页：随包领域词库（两列勾选），导入的词库（开关、移除、导入）。基础词库一直启用，不列。
 
-use render_engine::taffy::NodeId;
-use render_engine::{RenderError, Ui, group, paragraph, section_title};
+use bamboo_slip::taffy::NodeId;
+use bamboo_slip::{RenderError, Ui, group, paragraph, section_title};
 
 use crate::library::Kind;
 use crate::message::Message;

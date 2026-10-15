@@ -1,6 +1,6 @@
 //! 样例应用的状态与消息：照青简设置的「候选窗口」页（选项是真实的，只是不落盘）。`update` 是唯一改状态的地方。
 
-use render_engine::{Edit, TextEdit};
+use bamboo_slip::{Edit, TextEdit};
 
 pub const PAGES: [&str; 11] = [
     "通用",

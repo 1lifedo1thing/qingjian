@@ -1,7 +1,7 @@
 //! 侧栏的线性图标：16 单位见方的网格上画，1.5 单位线宽、圆头圆角，按 `size` 缩放。
 
-use render_engine::tiny_skia::{Path, PathBuilder};
-use render_engine::{Canvas, Color, Icon};
+use bamboo_slip::tiny_skia::{Path, PathBuilder};
+use bamboo_slip::{Canvas, Color, Icon};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Glyph {
@@ -242,7 +242,7 @@ impl Icon for Glyph {
             canvas.stroke_outline(path, width, color);
         }
         for path in &pen.fills {
-            canvas.fill_path(path, color, render_engine::tiny_skia::BlendMode::SourceOver);
+            canvas.fill_path(path, color, bamboo_slip::tiny_skia::BlendMode::SourceOver);
         }
     }
 }

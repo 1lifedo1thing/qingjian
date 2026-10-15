@@ -2,12 +2,10 @@
 
 use std::sync::Arc;
 
+use bamboo_slip::taffy::{Dimension, FlexDirection, FlexWrap, JustifyContent, NodeId, Size, Style};
+use bamboo_slip::{BoxPaint, Easing, Fill, Interact, RenderError, Ui, Visual};
 use qingjian_platform::LayoutMode;
 use qingjian_render::Pixmap;
-use render_engine::taffy::{
-    Dimension, FlexDirection, FlexWrap, JustifyContent, NodeId, Size, Style,
-};
-use render_engine::{BoxPaint, Easing, Fill, Interact, RenderError, Ui, Visual};
 
 use crate::message::{Message, SizeKind};
 use crate::view::Page;
@@ -57,7 +55,7 @@ pub fn preview(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError>
                 height: Dimension::length(page.px(PREVIEW_HEIGHT)),
             },
             flex_shrink: 0.0,
-            align_items: Some(render_engine::taffy::AlignItems::CENTER),
+            align_items: Some(bamboo_slip::taffy::AlignItems::CENTER),
             ..Style::default()
         },
         Visual::Box(BoxPaint {
@@ -112,7 +110,7 @@ pub fn cards(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
             Style {
                 flex_direction: FlexDirection::Row,
                 justify_content: Some(JustifyContent::CENTER),
-                align_items: Some(render_engine::taffy::AlignItems::CENTER),
+                align_items: Some(bamboo_slip::taffy::AlignItems::CENTER),
                 size: Size {
                     width: Dimension::length(page.px(TILE.0)),
                     height: Dimension::length(page.px(TILE.1)),
@@ -142,7 +140,7 @@ pub fn cards(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
         let card = ui.scene().node(
             Style {
                 flex_direction: FlexDirection::Column,
-                align_items: Some(render_engine::taffy::AlignItems::CENTER),
+                align_items: Some(bamboo_slip::taffy::AlignItems::CENTER),
                 gap: page.gap(6.0),
                 ..Style::default()
             },

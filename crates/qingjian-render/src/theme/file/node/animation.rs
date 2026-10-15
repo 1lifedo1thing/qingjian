@@ -3,7 +3,7 @@
 
 use std::time::Duration;
 
-use render_engine::{Easing, Keyframe, Keyframes};
+use bamboo_slip::{Easing, Keyframe, Keyframes};
 use serde::Deserialize;
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
