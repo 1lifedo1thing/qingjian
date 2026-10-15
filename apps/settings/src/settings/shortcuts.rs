@@ -32,6 +32,11 @@ impl Settings {
             "translate_selection",
             defaults.translate_selection.key_string(),
         );
+        if cfg!(windows) {
+            self.write("shortcut", "highlight_keys", defaults.highlight_keys.key());
+            self.write_list("shortcut", "extra_page_keys", &[]);
+            self.write("shortcut", "toggle_punctuation", "");
+        }
         self.recording = None;
     }
 }

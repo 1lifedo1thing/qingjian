@@ -51,6 +51,7 @@ impl App for Settings {
                     self.stats = Some(Stats::load(&self.config.general));
                 }
             }
+            Message::SystemCtrlSpace(on) => self.set_ctrl_space(on),
             Message::Record(shortcut) => self.recording = Some(shortcut),
             Message::StopRecording => self.recording = None,
             Message::Recorded(shortcut, press) => match shortcut.accept(&press, &self.config) {

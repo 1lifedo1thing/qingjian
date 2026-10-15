@@ -1,4 +1,4 @@
-//! 「中英文」页：英文模式（开关、切换键、英文候选、Shift + 字母），标点，悬浮状态条。
+//! 「中英文」页：英文模式（开关、切换键、默认英文与按应用记住、英文候选、Shift + 字母），标点与中西文空格，悬浮状态条。
 
 use qingjian_platform::{DEFAULT_ENGLISH_CANDIDATES_ON, ShiftLetter, SwitchKey};
 use render_engine::taffy::{FlexDirection, NodeId, Style};
@@ -6,6 +6,7 @@ use render_engine::{Checkbox, RenderError, SettingRow, Ui, Visual, group, sectio
 
 use crate::message::Message;
 use crate::view::Page;
+use crate::view::parts::actions::with_notice;
 use crate::view::parts::controls::{choice, toggle, toggle_info};
 
 /// 全角 / 半角两档，配置里是布尔。
@@ -29,6 +30,24 @@ pub fn language(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Render
     // macOS 的切换键是 Caps Lock，由系统决定
     if cfg!(windows) {
         rows.push(switch_keys(ui, page)?);
+        rows.push(toggle_info(
+            ui,
+            page,
+            "默认英文模式",
+            Some("青简启动时用英文；按应用记住时，没记过的应用也从英文开始。改这两项会清掉已记住的状态"),
+            ("general", "default_english"),
+            general.default_english,
+            !general.english_mode,
+        )?);
+        rows.push(toggle_info(
+            ui,
+            page,
+            "按应用记住中英模式",
+            Some("切回应用时恢复它上次的中英状态，同一应用的窗口共用；重启青简后从默认模式开始"),
+            ("general", "remember_mode_per_app"),
+            general.remember_mode_per_app,
+            !general.english_mode,
+        )?);
     }
     let only_in_apps = !config.apps.english_candidates_everywhere();
     let apps = if only_in_apps {
@@ -118,6 +137,18 @@ pub fn language(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Render
         general.punct_commits,
         false,
     )?);
+    // 要读应用里光标前的字，目前只有 macOS 接了
+    if cfg!(target_os = "macos") {
+        rows.push(toggle_info(
+            ui,
+            page,
+            "中文与英文、数字之间自动加空格",
+            Some("「用Go写了30行」上屏成「用 Go 写了 30 行」；标点两侧不补，读不到应用里的文字时不补"),
+            ("general", "auto_space"),
+            general.auto_space,
+            false,
+        )?);
+    }
     out.push(section_title(ui, theme, "标点")?);
     out.push(group(ui, theme, &rows)?);
 
@@ -139,7 +170,7 @@ fn width_label(full: bool) -> &'static str {
     if full { "全角" } else { "半角" }
 }
 
-/// 中英切换键可以多选，一个都不勾就只剩按钮能切。
+/// 中英切换键可以多选，一个都不勾就只剩按钮能切；最后一个是 Windows 自己的 Ctrl + Space，改的是系统设置。
 fn switch_keys(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError> {
     let keys = page.settings.config.shortcut.switch_mode;
     let mut boxes = Vec::new();
@@ -158,6 +189,13 @@ fn switch_keys(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError>
             Message::SetList("shortcut", "switch_mode", values),
         )?);
     }
+    let system = page.settings.ctrl_space;
+    boxes.push(Checkbox::new(system, "Ctrl + Space（系统）").build(
+        ui,
+        &page.theme,
+        "switch-key-system",
+        Message::SystemCtrlSpace(!system),
+    )?);
     let column = ui.scene().node(
         Style {
             flex_direction: FlexDirection::Column,
@@ -168,7 +206,12 @@ fn switch_keys(ui: &mut Ui<Message>, page: &Page) -> Result<NodeId, RenderError>
         Visual::Group,
         &boxes,
     )?;
-    SettingRow::new("切换键")
-        .control(column)
-        .build(ui, &page.theme)
+    with_notice(
+        ui,
+        page,
+        SettingRow::new("切换键")
+            .info("勾上的都能切，可以多选。Ctrl + Space（系统）是 Windows 的设置，也会影响微软拼音等简体中文输入法")
+            .control(column),
+        "switch-keys",
+    )
 }

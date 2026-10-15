@@ -2,7 +2,9 @@
 
 use std::sync::{Arc, Mutex};
 
-use qingjian_predict::{ConnectionReport, ConnectionTest, PredictConfig, PredictError};
+use qingjian_predict::{
+    API_USAGE_FILE, ConnectionReport, ConnectionTest, PredictConfig, PredictError,
+};
 use render_engine::Waker;
 
 type Outcome = Result<ConnectionReport, PredictError>;
@@ -22,7 +24,12 @@ impl CloudTest {
 
     /// 开始测试；当场就失败（没有密钥）时返回那句话。
     pub fn start(&mut self, config: &PredictConfig, waker: Option<Waker>) -> Result<(), String> {
-        let test = ConnectionTest::start(config).map_err(|error| describe(&error))?;
+        // 测试连接也是一次真请求，用量记进统计页的 Token 统计（目前只有 Windows 的输入法记用量）
+        let usage = crate::system::paths::user_dir()
+            .filter(|_| cfg!(windows))
+            .map(|dir| dir.join(API_USAGE_FILE));
+        let test =
+            ConnectionTest::start_with_usage(config, usage).map_err(|error| describe(&error))?;
         self.running = true;
         let result = Arc::clone(&self.result);
         std::thread::spawn(move || {

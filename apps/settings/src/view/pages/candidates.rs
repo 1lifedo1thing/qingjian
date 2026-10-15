@@ -1,12 +1,13 @@
-//! 「候选」页：每页几个、译文、繁体、emoji，排序（学习、本地整句模型），英文词。
+//! 「候选」页：每页几个、译文、输出字形，候选后面的 emoji / 颜文字 / 符号，排序（学习、本地整句模型），英文词。
 
-use qingjian_platform::MAX_PAGE_SIZE;
+use qingjian_core::TraditionalVariant;
+use qingjian_platform::{EmojiCount, MAX_PAGE_SIZE};
 use render_engine::taffy::NodeId;
 use render_engine::{RenderError, SettingRow, Stepper, Ui, group, section_title};
 
 use crate::message::{Message, Popup};
 use crate::view::Page;
-use crate::view::parts::controls::{LANGUAGES, select, toggle, toggle_info, toggle_with};
+use crate::view::parts::controls::{LANGUAGES, select, toggle_info, toggle_with};
 
 pub fn candidates(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderError> {
     let theme = &page.theme;
@@ -37,6 +38,17 @@ pub fn candidates(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Rend
         120.0,
         false,
     )?;
+    let traditional = select(
+        ui,
+        page,
+        Popup::Traditional,
+        (
+            general.traditional().label(),
+            &TraditionalVariant::ALL.map(TraditionalVariant::label),
+        ),
+        150.0,
+        false,
+    )?;
     let rows = vec![
         SettingRow::new("每页候选数")
             .control(stepper)
@@ -45,18 +57,41 @@ pub fn candidates(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Rend
             .info("不显示时生词标记也关掉")
             .control(language)
             .build(ui, theme)?,
-        toggle_info(
-            ui,
-            page,
-            "繁体",
-            Some("只换字形，不换用语"),
-            ("general", "traditional"),
-            general.traditional,
-            false,
-        )?,
-        toggle(ui, page, "emoji", ("general", "emoji"), general.emoji)?,
+        SettingRow::new("输出字形")
+            .info("只换字形、不换用语（软件 → 軟件）；台湾与香港的字形取舍不同（裡 / 裏）")
+            .control(traditional)
+            .build(ui, theme)?,
     ];
     out.push(section_title(ui, theme, "显示")?);
+    out.push(group(ui, theme, &rows)?);
+
+    let rows = vec![
+        count(
+            ui,
+            page,
+            Popup::Emoji,
+            "emoji",
+            "kaixin → 开心 😄",
+            general.emoji,
+        )?,
+        count(
+            ui,
+            page,
+            Popup::Kaomoji,
+            "颜文字",
+            "ku → 哭 (T_T)",
+            general.kaomoji,
+        )?,
+        count(
+            ui,
+            page,
+            Popup::Symbols,
+            "符号",
+            "yuedengyu → 约等于 ≈，alpha → α",
+            general.symbols,
+        )?,
+    ];
+    out.push(section_title(ui, theme, "候选后面")?);
     out.push(group(ui, theme, &rows)?);
 
     let rows = vec![
@@ -104,4 +139,30 @@ pub fn candidates(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Rend
     out.push(section_title(ui, theme, "英文词")?);
     out.push(group(ui, theme, &rows)?);
     Ok(out)
+}
+
+/// 候选后面一次最多配几个：不显示、1–3 个。
+fn count(
+    ui: &mut Ui<Message>,
+    page: &Page,
+    popup: Popup,
+    title: &str,
+    example: &str,
+    current: EmojiCount,
+) -> Result<NodeId, RenderError> {
+    let control = select(
+        ui,
+        page,
+        popup,
+        (
+            EmojiCount::LABELS[usize::from(current.get())],
+            &EmojiCount::LABELS,
+        ),
+        120.0,
+        false,
+    )?;
+    SettingRow::new(title)
+        .info(example)
+        .control(control)
+        .build(ui, &page.theme)
 }

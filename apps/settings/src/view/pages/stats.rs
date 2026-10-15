@@ -1,6 +1,8 @@
-//! 「统计」页：今天、最近 7 天、累计三张数字卡，累计跟一本书比；词汇（学习语言的译词见过、看熟、上屏过，有等级表时按级列）。
+//! 「统计」页：今天、最近 7 天、累计三张数字卡，累计跟一本书比；词汇（学习语言的译词见过、看熟、上屏过，有等级表时按级列）；
+//! 云服务的请求次数与 Token 用量（Windows）。
 
 use qingjian_core::{Usage, VocabularySummary};
+use qingjian_predict::ApiUsageStats;
 use render_engine::taffy::{
     AlignItems, Dimension, FlexDirection, JustifyContent, LengthPercentage, NodeId, Rect, Size,
     Style,
@@ -67,7 +69,78 @@ pub fn stats(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderErr
             out.push(group(ui, theme, &[off])?);
         }
     }
+
+    // 目前只有 Windows 的输入法记云服务用量
+    if !cfg!(windows) {
+        return Ok(out);
+    }
+    out.push(section_title(ui, theme, "云服务用量")?);
+    let rows = match &stats.api {
+        Some(api) => vec![note(ui, page, &requests_line(api))?, tokens(ui, page, api)?],
+        None => vec![note(
+            ui,
+            page,
+            "用量记录读不出来，原有记录还在，稍后再进这一页看",
+        )?],
+    };
+    out.push(group(ui, theme, &rows)?);
     Ok(out)
+}
+
+/// 「请求 12 次，收到 11 次，失败 1 次」，还在等的、没报用量的另说。
+fn requests_line(api: &ApiUsageStats) -> String {
+    if api.requests == 0 {
+        return "还没有发过请求：云联想、译词补充、翻译选中文字和「测试连接」都算".to_owned();
+    }
+    let mut line = format!(
+        "请求 {} 次，收到 {} 次，失败 {} 次",
+        group_digits(api.requests),
+        group_digits(api.responses),
+        group_digits(api.failures)
+    );
+    let unresolved = api.unresolved_requests();
+    if unresolved > 0 {
+        line += &format!("，还没有结果 {} 次", group_digits(unresolved));
+    }
+    if api.unreported_usage > 0 {
+        line += &format!(
+            "；{} 次服务没报用量，不在下面的数里",
+            group_digits(api.unreported_usage)
+        );
+    }
+    line
+}
+
+/// Token 表：表头一行，累计一行。缓存输入已经算在输入里。
+fn tokens(ui: &mut Ui<Message>, page: &Page, api: &ApiUsageStats) -> Result<NodeId, RenderError> {
+    let header = ["输入", "输出", "合计", "其中缓存"].map(str::to_owned);
+    let values = [
+        api.input_tokens,
+        api.output_tokens,
+        api.total_tokens,
+        api.cached_input_tokens,
+    ]
+    .map(group_digits);
+    let rows = [
+        level_row(ui, page, "Token", &header, true)?,
+        level_row(ui, page, "累计", &values, false)?,
+    ];
+    let space = LengthPercentage::length(page.px(12.0));
+    ui.scene().node(
+        Style {
+            flex_direction: FlexDirection::Column,
+            gap: page.gap(6.0),
+            padding: Rect {
+                top: space,
+                bottom: space,
+                left: LengthPercentage::length(0.0),
+                right: LengthPercentage::length(0.0),
+            },
+            ..Style::default()
+        },
+        Visual::Group,
+        &rows,
+    )
 }
 
 /// 一张数字卡：标题、大字的汉字数，下面两行小字。

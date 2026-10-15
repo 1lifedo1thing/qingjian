@@ -93,9 +93,33 @@ pub struct Settings {
     pub sources_open: bool,
 
     pub search: Search,
+
+    /// Windows 的系统 Ctrl + Space 开着；别的平台总是 `false`。打开窗口时读一次，改了再读。
+    pub ctrl_space: bool,
+}
+
+#[cfg(windows)]
+fn system_ctrl_space() -> bool {
+    crate::system::hotkey::ctrl_space_enabled()
+}
+
+#[cfg(not(windows))]
+fn system_ctrl_space() -> bool {
+    false
 }
 
 impl Settings {
+    /// 改系统的 Ctrl + Space，没改成就在切换键下面说一句；勾选状态按系统实际的来。
+    fn set_ctrl_space(&mut self, on: bool) {
+        #[cfg(windows)]
+        if let Err(error) = crate::system::hotkey::set_ctrl_space(on) {
+            self.notice = Some(("switch-keys", error));
+        }
+        #[cfg(not(windows))]
+        let _ = on;
+        self.ctrl_space = system_ctrl_space();
+    }
+
     pub fn load(path: PathBuf) -> Result<Self, ConfigError> {
         // macOS 偏好设置以前把密钥写在配置同目录的 .env 里，读进环境才知道密钥设没设、测试连接也用得上
         let _ = dotenvy::from_path(path.with_file_name(".env"));
@@ -133,6 +157,7 @@ impl Settings {
             stats: None,
             waker: None,
             search: Search::default(),
+            ctrl_space: system_ctrl_space(),
         }
         .with_fields())
     }

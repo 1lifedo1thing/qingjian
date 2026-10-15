@@ -1,4 +1,4 @@
-//! 统计页的数：输入量（`usage.tsv`）与词汇（`user-vocab.tsv`，有等级表时按级分）。输入法记、这里只读，进统计页时读一次。
+//! 统计页的数：输入量（`usage.tsv`）、词汇（`user-vocab.tsv`，有等级表时按级分）与云服务的 Token 用量。输入法记、这里只读，进统计页时读一次。
 //! 还有几种给人看的写法：千位分隔、万 / 亿字、跟一本书比。
 
 use std::path::PathBuf;
@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use qingjian_core::{Language, UsageSummary, VocabularySummary, book_scale};
 use qingjian_learning::{UsageStats, VocabularyBook};
 use qingjian_platform::GeneralConfig;
+use qingjian_predict::{API_USAGE_FILE, ApiUsageStats};
 use qingjian_translate::LevelTable;
 
 use crate::system::paths;
@@ -15,6 +16,9 @@ pub struct Stats {
 
     /// 学习语言的名字与词汇汇总；学习语言关着为 `None`。
     pub vocabulary: Option<(&'static str, VocabularySummary)>,
+
+    /// 云服务请求与 Token 用量；文件读不出来为 `None`。
+    pub api: Option<ApiUsageStats>,
 }
 
 impl Stats {
@@ -35,7 +39,14 @@ impl Stats {
             }
             (language_name(language), book.summary_on(language, today))
         });
-        Self { usage, vocabulary }
+        let api = ApiUsageStats::load(&dir.join(API_USAGE_FILE))
+            .inspect_err(|error| tracing::warn!(%error, "API 用量统计读取失败"))
+            .ok();
+        Self {
+            usage,
+            vocabulary,
+            api,
+        }
     }
 }
 
@@ -46,6 +57,7 @@ fn language_name(language: Language) -> &'static str {
         Language::Japanese => "日语",
         Language::Spanish => "西班牙语",
         Language::Vietnamese => "越南语",
+        Language::German => "德语",
     }
 }
 

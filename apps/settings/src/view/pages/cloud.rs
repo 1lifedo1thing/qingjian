@@ -1,4 +1,4 @@
-//! 「云服务」页：云联想（开关、云端词格数、整句补全），服务（接口地址、模型、密钥、测试连接）。
+//! 「云服务」页：云联想（开关、云端词格数、整句补全、整句候选翻译），服务（接口地址、模型、密钥、测试连接）。
 
 use render_engine::taffy::NodeId;
 use render_engine::{
@@ -59,6 +59,17 @@ pub fn cloud(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, RenderErr
             Some("拼音后面给出整句，按 Tab 采用"),
             ("predict", "sentence"),
             predict.sentence,
+            off,
+        )?,
+        toggle_info(
+            ui,
+            page,
+            "整句候选翻译",
+            Some(
+                "本地整句候选出来后，单独把这条候选发给服务，译文随后显示在它右侧；不发光标前后的文字",
+            ),
+            ("predict", "sentence_translation"),
+            predict.sentence_translation,
             off,
         )?,
     ];

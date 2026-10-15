@@ -1,19 +1,19 @@
-//! 「快捷键」页：翻页与模式（翻页键、表达式、问字、? 进问字），候选上的组合键（译词上屏、删除、翻译选中文字），
+//! 「快捷键」页：翻页与模式（翻页键，Windows 的额外翻页键、高亮移动键、标点切换键，表达式、问字、? 进问字），候选上的组合键（译词上屏、删除、翻译选中文字），
 //! 恢复默认，页底列组句中固定的键。
 
 use qingjian_core::ModeKeys;
-use qingjian_platform::PAGE_KEY_OPTIONS;
-use render_engine::taffy::{LengthPercentage, NodeId, Rect, Style};
+use qingjian_platform::{HighlightKeys, PAGE_KEY_OPTIONS};
+use render_engine::taffy::{FlexDirection, LengthPercentage, NodeId, Rect, Style};
 use render_engine::{
-    Button, KeyRecorder, RenderError, Segmented, SettingRow, Ui, Visual, group, paragraph,
-    section_title,
+    Button, Checkbox, KeyRecorder, RenderError, Segmented, SettingRow, Ui, Visual, group,
+    paragraph, section_title,
 };
 
 use crate::message::Message;
 use crate::shortcut::Shortcut;
 use crate::view::Page;
 use crate::view::parts::actions::with_notice;
-use crate::view::parts::controls::toggle_info;
+use crate::view::parts::controls::{choice, toggle_info};
 
 /// 组句中固定、不能改的键。
 const FIXED: &str = if cfg!(target_os = "macos") {
@@ -44,11 +44,16 @@ pub fn shortcuts(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Rende
         Message::set("general", "page_keys", PAGE_KEY_OPTIONS[index])
     })?;
     let mode = config.shortcut.mode.sanitized();
-    let rows = vec![
+    let mut rows = vec![
         SettingRow::new("翻页键")
             .info("选逗号句号或减号等号时，组句中敲它们是翻页，不再上屏加标点")
             .control(page_keys)
             .build(ui, theme)?,
+    ];
+    if cfg!(windows) {
+        rows.extend(windows_keys(ui, page, &labels)?);
+    }
+    rows.extend([
         SettingRow::new("表达式")
             .info("这个字母开头进表达式：v1+2 出 3")
             .control(mode_key(ui, page, "expression", mode.expression)?)
@@ -66,7 +71,7 @@ pub fn shortcuts(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Rende
             mode.question_mark,
             false,
         )?,
-    ];
+    ]);
     out.push(section_title(ui, theme, "翻页与模式")?);
     out.push(group(ui, theme, &rows)?);
 
@@ -125,6 +130,70 @@ pub fn shortcuts(ui: &mut Ui<Message>, page: &Page) -> Result<Vec<NodeId>, Rende
     out.push(group(ui, theme, &[reset])?);
     out.push(fixed);
     Ok(out)
+}
+
+/// Windows 才有的三行：额外翻页键（可多选）、高亮移动键、标点切换键。
+fn windows_keys(
+    ui: &mut Ui<Message>,
+    page: &Page,
+    labels: &[&str],
+) -> Result<[NodeId; 3], RenderError> {
+    let theme = &page.theme;
+    let shortcut = &page.settings.config.shortcut;
+    let extra = shortcut.extra_page_keys;
+    let mut boxes = Vec::new();
+    for (pair, label) in PAGE_KEY_OPTIONS.into_iter().zip(labels) {
+        let on = extra.contains(pair);
+        boxes.push(Checkbox::new(on, label).build(
+            ui,
+            theme,
+            ("extra-page-keys", pair),
+            Message::SetList("shortcut", "extra_page_keys", extra.with(pair, !on).into()),
+        )?);
+    }
+    let boxes = ui.scene().node(
+        Style {
+            flex_direction: FlexDirection::Row,
+            gap: page.gap(12.0),
+            ..Style::default()
+        },
+        Visual::Group,
+        &boxes,
+    )?;
+    let highlight = choice(
+        ui,
+        page,
+        "highlight-keys",
+        &HighlightKeys::ALL,
+        shortcut.highlight_keys,
+        HighlightKeys::label,
+        |value| Message::set("shortcut", "highlight_keys", value.key()),
+    )?;
+    let punctuation = shortcut.toggle_punctuation.is_some();
+    let switch = render_engine::Switch::new(punctuation).build(
+        ui,
+        theme,
+        "toggle-punctuation",
+        Message::set(
+            "shortcut",
+            "toggle_punctuation",
+            if punctuation { "" } else { "ctrl+." },
+        ),
+    )?;
+    Ok([
+        SettingRow::new("额外翻页键")
+            .info("跟上面的翻页键一起用；表达式、英文直输段、辅码触发键照旧")
+            .control(boxes)
+            .build(ui, theme)?,
+        SettingRow::new("高亮移动键")
+            .info("选 ← / → 时连着拼音行一起走：拼音光标到末尾按 → 才到下一个候选，候选在首位按 ← 退回拼音行；↑ / ↓ 不做事")
+            .control(highlight)
+            .build(ui, theme)?,
+        SettingRow::new("Ctrl + . 切换全半角标点")
+            .info("切的是当前中英模式的标点；配置文件里 [shortcut] toggle_punctuation 可以换别的组合键")
+            .control(switch)
+            .build(ui, theme)?,
+    ])
 }
 
 fn mode_key(
