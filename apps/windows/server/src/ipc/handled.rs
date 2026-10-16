@@ -1,3 +1,5 @@
+//! 连接循环里一条消息交给工人线程后的结果。
+
 use qingjian_platform::protocol::ServerMessage;
 
 /// `pump` 里一条消息的分派结果。
