@@ -2,15 +2,17 @@
 //! 这层只提供双工字节流上的消息循环（[`serve`]）与具体传输（命名管道 [`pipe`]）。
 
 #[cfg(windows)]
+mod handled;
 pub mod pipe;
 mod work;
 
+pub use handled::Handled;
 pub use qingjian_platform::protocol::{CodecError, read_message, write_message};
 pub use work::Work;
 
 use std::io::{Read, Write};
 
-use qingjian_platform::protocol::{ClientMessage, ServerMessage, SessionId};
+use qingjian_platform::protocol::{ClientMessage, SessionId};
 
 use crate::dispatch::Router;
 
@@ -19,7 +21,7 @@ pub fn serve<S: Read + Write>(stream: &mut S, router: &mut Router) -> Result<(),
     let mut opened = Vec::new();
     let outcome = pump(
         stream,
-        |message| Handled::Reply(router.handle(message)),
+        |message| Handled::Reply(router.handle(message).map(Box::new)),
         &mut opened,
     );
     // 对端就这么没了（应用被关 / 崩了 / 管道断）时 DLL 来不及发 `CloseSession`：
@@ -28,15 +30,6 @@ pub fn serve<S: Read + Write>(stream: &mut S, router: &mut Router) -> Result<(),
         router.handle(ClientMessage::CloseSession { session });
     }
     outcome
-}
-
-/// `pump` 里一条消息的分派结果。
-pub enum Handled {
-    /// 分派完了；`None` 是不回话的通知类消息。
-    Reply(Option<ServerMessage>),
-
-    /// 分派方放弃了（工人线程没了）：连接到此为止。
-    Stop,
 }
 
 /// 连接循环：读 → 交给 `dispatch` → 写回，直到对端在帧边界关闭、读写出错或 `dispatch` 要停。
@@ -52,7 +45,7 @@ fn pump<S: Read + Write>(
             opened.push(*session);
         }
         match dispatch(message) {
-            Handled::Reply(Some(response)) => write_message(&mut *stream, &response)?,
+            Handled::Reply(Some(response)) => write_message(&mut *stream, &*response)?,
             Handled::Reply(None) => {}
             Handled::Stop => break,
         }

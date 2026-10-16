@@ -184,7 +184,7 @@ fn serve_connection(mut stream: File, sender: Sender<Work>) {
                 return Handled::Stop;
             }
             match reply_receiver.recv() {
-                Ok(reply) => Handled::Reply(reply),
+                Ok(reply) => Handled::Reply(reply.map(Box::new)),
                 Err(_) => Handled::Stop,
             }
         },
