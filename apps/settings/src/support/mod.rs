@@ -88,7 +88,7 @@ impl Feature {
             Self::TogglePunctuation => [Todo, Yes, Todo],
             // 系统的文本替换只有 macOS 有
             Self::SystemTextReplacements => [Yes, No, No],
-            // Linux 的输入法还没接云服务
+            // Linux 已接云服务，尚未记录云服务用量
             Self::ApiUsage => [Yes, Yes, Todo],
             Self::CloudRequestControls => [Todo, Yes, Todo],
         }
