@@ -26,7 +26,7 @@
 各列宽度由 Core 按**整份**候选估（`Grid::column_ems`：汉字一个字宽、拉丁字母 0.62、云朵另加，单格封顶 `MAX_CELL_EMS` = 4 个字宽，
 四字词能完整显示），不按视口里可见的几行实测，所以滚动、移动高亮时列宽不变；超出的候选截尾加「…」，高亮到它时网格下方的信息行给出完整文本和译文，
 页码在信息行末尾，信息行放不下的同样截断，不撑开窗口；信息行始终保留，在靠后的页展开时视口往上补齐 6 行。9 列时网格最宽约 756 pt。
-第一版按视口实测列宽、单格 6 个字宽，滚一行窗口就跳一下，最宽能到 1100 pt。两条绘制路径（macOS 系统绘制的 `view/matrix.rs`、Windows GDI 的 `candidates/view.rs`）同一套规则；青简渲染器（`qingjian-render`）的矩阵模板还没移植到场景树，见 `docs/notes/crate-notes.md`。
+第一版按视口实测列宽、单格 6 个字宽，滚一行窗口就跳一下，最宽能到 1100 pt。两条系统绘制路径（macOS 的 `view/matrix.rs`、Windows GDI 的 `candidates/view.rs`）同一套规则；青简渲染器（`qingjian-render` 的 `renderer/build/matrix.rs`）列宽与截尾相同，没有单独的信息行，高亮候选的译文由主题决定画不画，见 `docs/notes/crate-notes.md`。
 
 横排时候选排成一行，只给高亮的那个在下面单独一行显示译文（每个都带译文会把窗口拉得很宽），页码在行尾：
 

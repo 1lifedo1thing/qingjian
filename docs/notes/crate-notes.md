@@ -225,8 +225,8 @@ P2C 自由生成实验：`--eval-text <集> --eval-generate data/models/hanzhang
 这里留下帧数据、主题格式、`renderer/build/` 建树、点击区域、状态条与云朵 / 齿轮图标（`icon/`，实现引擎的 `Icon` trait）。改了引擎回来跑本 crate 的快照测试。
 
 横排矩阵：视口与高亮移动在 Core `candidate::layout::Grid`（`GRID_ROWS` = 6，列宽 `Grid::column_ems` 按整份候选估、单格封顶 `MAX_CELL_EMS` = 4 字宽）。
-**青简渲染器还不会画矩阵**：main 上的 `renderer/matrix.rs` 建在手算坐标的旧渲染器上，合进主题分支时随旧渲染器删了，场景树这边要另做一个矩阵窗口模板
-（固定列宽、超宽截尾、网格下一行信息）；移植之前 mac 壳只在系统绘制下展开矩阵（`Host::grid_keys` 多一个 `!uses_bitmap()` 条件），青简渲染器暂时不读视口。
+青简渲染器在 `renderer/build/matrix.rs` 画矩阵：`Frame.columns` 不为 0 时，横排模板里候选的 `repeat` 改包进一个网格（主题不另写模板），
+列宽至少 `column_ems`、超宽截尾加「…」（字宽估法与 Core 相同），格子里不画逐项译文；主题写了 `highlighted.annotation` 的照常画在网格下面，没有单独的信息行。
 Windows Server 自绘候选窗（GDI）按 `Frame.columns` / `column_ems` 画矩阵：列宽滚动时不变、超宽候选截尾加「…」、网格下一行信息给出完整文本与译文；
 这套按键 mac 壳（`Host::grid_keys`）与 Windows Server（`RouterConfig::grid_keys`）都由 `[general] horizontal_grid`（缺省关）加横排两个条件一起开。
 
