@@ -402,6 +402,8 @@ slots = 2
 sentence = true
 # 本地整句候选右侧是否显示服务返回的译文；仅发送该候选文本，不发送光标前后上下文
 sentence_translation = false
+# 上屏的整句（含分几次打完的一句）翻成学习语言，记进生词本的时间线；只发那一句，不发光标前后的文字
+vocabulary_translation = true
 
 [status_bar]
 # 桌面上常驻、可拖动的悬浮状态条（Windows）：「中 / 英」格点一下切换模式（开着双拼时还显示方案名）、「，。」格切全角 / 半角标点、齿轮打开设置。

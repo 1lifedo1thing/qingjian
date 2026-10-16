@@ -104,7 +104,10 @@ CandidateLayout 保持 `set_cloud` 的首页末尾布局与本地首项；`set_c
   Engine 每次上屏 `Usage::of_text` + 按来源定词数，整句按 `segment_text` 切词数；键数与打字时长由 Core `Typing` 数：从这段第一键或上一次上屏起，键间停顿超过 5 秒不算。
   **每次上屏当场追加一行**（进程被杀、断电最多丢正在写的半行，读时跳过；末尾是半行时先换行再追加），同一时段多行读时相加；`flush` 只在追加失败过、或文件行数比时段数多 `COMPACT_AFTER` = 2000 时整理重写（原子写）。
   0.2.2 以前按天的 `usage.tsv` 照读不写（不分时段），降级回老版本时老版本只写它，两份不冲突。与输入日志无关，设置「统计」页显示，`book_scale` 折成几本《某书》）。
-- `VocabularyBook`：词汇记录（`user-vocab.tsv`，Core `VocabularyTracker` trait 的实现：学习语言的每条译词看到过几轮 / 上屏过 / ⌥+数字 打出过几次；Core 私密输入统一跳过曝光和提交写入，但仍可读取已有记录用于排序和生词标记；
+- `VocabularyBook`：词汇记录 / 生词本（`user-vocab.tsv`，Core `VocabularyTracker` trait 的实现：学习语言的每条译词看到过几轮 / 上屏过 / ⌥+数字 打出过几次，
+  后三列是「认识」与最近一次的中文、例句（老文件只有前七列照读）；例句由 Core `ExampleCollector` 攒：上屏带译词的词先挂起，句末标点、换行、`break_chain` 或满 80 字时交出整句；
+  时间线另记 `vocab-log.tsv`（`encounter_log`，一次相遇一行 `时间\t语言\t中文\t说法\t读音`，落盘时追加）：Core 上屏带译词且至少两个汉字时 `record_encounter`，整句（一次上屏的，与 `ExampleCollector` 收出的分几次上屏、至少 4 个汉字的一句）经 `GlossFiller::translate` 交给 `qingjian-predict` 的整段翻译线程（攒 5 秒或 10 段一批），`poll_glosses` 取回再记；
+  设置程序的生词本页也写这个文件，两边写前 `refresh`：按修改时间与长度看出对方写过，就把对方删掉的词删掉、「认识」取对方的；Core 私密输入统一跳过曝光和提交写入，但仍可读取已有记录用于排序和生词标记；
   Engine `annotate` 据此填 `Sense::fresh`，看到轮次不到 `FRESH_UNTIL` = 3 的译词壳里画橙色；「看到」按上屏那一刻屏幕上那一页算，壳每次画完 `Engine::note_displayed` 告知当前页）。
 - 各表落盘走 Core `storage::write_atomic`（临时文件 + fsync + 改名），加载按行容错（坏行警告跳过，真读不了壳退回内存学习），
   壳激活期间每 60 秒 `Engine::flush_learning`；IMK 回调边界 `imk::catch_panic` 拦 panic、缓冲区字母原样上屏（见 architecture.md「崩溃不丢」）。
@@ -126,6 +129,7 @@ Windows 的 `Router::recompose` 在输入清空时调用 `Engine::cancel_predict
 - `CloudGlossFiller`：释义兜底（Core `GlossFiller` trait，与 Predictor 分开的线程与通道，攒 1.5 秒 / 8 个词发一次，问过不再问）：
   随包释义表没有的词库词 / 云端词上屏后入队，结果壳每秒 `Engine::poll_glosses` 经 `Translator::learn` 写进 `qingjian-translate::PersonalGlossary`
   （`user-glossary-<语言>.tsv`，`LayeredTranslator` 个人表优先）；随云联想开关一起开。
+  同一个 Filler 另起一条整段翻译线程（`gloss/phrase_worker.rs`，提示词 `phrase_prompt.rs`，攒 5 秒 / 10 段，本进程内同一段不重复翻）：生词本时间线用，整句等没有现成译词的上屏中文经 `GlossFiller::translate` 入队，`poll_translations` 取回 `Encounter`。
   云释义的系统 prompt 在 `gloss/prompt.rs` 按学习语言分派：德语臂 `GERMAN_SYSTEM_PROMPT` 要求名词带冠词 der/die/das 且首字母大写、动词用不定式；
   返回译文经 `clean_text` 按语言设限，德语臂上限 40 字符（`MAX_GERMAN_CHARS`，西语臂 32），字符白名单 `is_latin_ext_char` 为西 / 德共用
   （拉丁扩展区间 0x00C0–0x024F，汉字与西里尔字母不收）。
