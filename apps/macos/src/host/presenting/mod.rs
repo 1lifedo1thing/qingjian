@@ -74,6 +74,11 @@ impl Host {
         self.horizontal_grid && self.layout == LayoutMode::Horizontal
     }
 
+    /// `←` / `→` 归候选：横排矩阵开着，或高亮移动键选了 `←` / `→`。
+    pub fn arrows_move_cells(&self) -> bool {
+        self.grid_keys() || self.highlight_keys == HighlightKeys::LeftRight
+    }
+
     /// 新一轮候选：每页格数取配置与窗口能画的行数中较小者，云端槽位数取配置。
     pub fn reset_session(&mut self, preedit: Option<Preedit>, candidates: Vec<Candidate>) {
         self.status = None;
