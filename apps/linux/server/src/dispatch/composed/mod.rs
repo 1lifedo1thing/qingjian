@@ -141,6 +141,8 @@ impl Router {
                 column_ems: Vec::new(),
                 appearance: self.config.appearance,
                 aux_code_show: false,
+                // fcitx5 默认面板不渲染词性，Linux 暂无这个开关的接线；保持缺省显示
+                translation_pos: true,
                 sentence: None,
                 notice: self.notice.clone(),
                 symbol_panel: false,
@@ -183,6 +185,8 @@ impl Router {
                     column_ems: Vec::new(),
                     appearance: self.config.appearance,
                     aux_code_show: false,
+                    // 同上：Linux 侧还没接 translation_pos 开关
+                    translation_pos: true,
                     sentence: self.sentence.clone(),
                     notice: self.notice.clone(),
                     symbol_panel: false,

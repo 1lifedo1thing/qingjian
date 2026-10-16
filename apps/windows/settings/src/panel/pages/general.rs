@@ -77,6 +77,14 @@ pub(crate) fn view(settings: &Settings, context: &mut ViewContext<Settings>) -> 
             ),
         ),
         field(
+            "译词显示词性",
+            "关掉后候选旁只显示译词，不显示 v. / n. / adj. 等标注（develop 而非 v. develop）。译文选「不显示译文」时此项无效。",
+            ToggleSwitch::new()
+                .is_on(g.translation_pos)
+                .is_enabled(!g.learning_language_off())
+                .on_toggled(context.callback(Message::TranslationPos)),
+        ),
+        field(
             "每页候选数",
             "",
             NumberBox::new()

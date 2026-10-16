@@ -60,6 +60,12 @@ pub struct Frame {
     #[serde(default)]
     pub aux_code_show: bool,
 
+    /// 译词旁是否显示词性标注（`[general] translation_pos`）：关掉时注记里不出 v. / n. / adj. 段，译词保留。
+    /// 与 `aux_code_show` 一样，显示开关由 Server 按配置随帧下发；帧的渲染消费者只有 Server 自己的候选窗，
+    /// DLL 不读这个字段。纯加 `#[serde(default)]` 字段不 bump 协议版本（会整条解帧失败的枚举变体才必须 bump）。
+    #[serde(default)]
+    pub translation_pos: bool,
+
     /// 整句补全（云联想给的整段拼音的整句结果）：画在 preedit 行右侧，按 Tab 上屏。无则 `None`。
     pub sentence: Option<String>,
 

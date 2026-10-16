@@ -132,6 +132,9 @@ pub struct RouterConfig {
 
     /// 候选上是否显示辅码（`[general] aux_code_show`）。随帧下发给候选窗。
     pub aux_code_show: bool,
+
+    /// 译词旁是否显示词性标注（`[general] translation_pos`）。随帧下发给候选窗。
+    pub translation_pos: bool,
 }
 
 impl RouterConfig {
@@ -207,6 +210,7 @@ impl From<&Config> for RouterConfig {
             traditional: config.general.traditional() != TraditionalVariant::Off,
             aux_code_key: config.general.aux_code_key(),
             aux_code_show: config.general.aux_code_show,
+            translation_pos: config.general.translation_pos,
         }
     }
 }

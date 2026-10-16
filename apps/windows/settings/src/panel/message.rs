@@ -8,6 +8,8 @@ pub(crate) enum Message {
 
     // 通用页
     LearningLanguage(Option<usize>),
+    /// 译词旁是否显示词性标注（`[general] translation_pos`）。
+    TranslationPos(bool),
     PageSize(Option<f64>),
     Scheme(Option<usize>),
     ShuangpinRawPreedit(bool),
